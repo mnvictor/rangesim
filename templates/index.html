@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>rangesim — Canard Propfan Range Estimator</title>
+<style>
+  :root {
+    --bg:      #0f1117;
+    --panel:   #1a1d27;
+    --border:  #2e3347;
+    --accent:  #4f8ef7;
+    --accent2: #6fcf97;
+    --warn:    #f2994a;
+    --text:    #e0e4f0;
+    --sub:     #8891aa;
+    --input-bg:#13161f;
+    --radius:  8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; min-height: 100vh; }
+
+  header { background: var(--panel); border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; align-items: center; gap: 14px; }
+  header h1 { font-size: 17px; font-weight: 600; letter-spacing: .3px; }
+  header p  { color: var(--sub); font-size: 12px; }
+  .badge { background: var(--accent); color: #fff; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 99px; letter-spacing: .5px; }
+
+  .layout { display: grid; grid-template-columns: 320px 1fr; height: calc(100vh - 54px); overflow: hidden; }
+
+  /* ── Left panel ─────────────────────────────────────────────── */
+  .sidebar { background: var(--panel); border-right: 1px solid var(--border); overflow-y: auto; padding: 18px 16px 24px; display: flex; flex-direction: column; gap: 4px; }
+
+  .section-title { font-size: 11px; font-weight: 700; color: var(--accent); letter-spacing: 1px; text-transform: uppercase; margin: 14px 0 8px; }
+  .section-title:first-child { margin-top: 0; }
+
+  label { display: block; color: var(--sub); font-size: 12px; margin-bottom: 3px; margin-top: 10px; }
+  label:first-of-type { margin-top: 0; }
+
+  .field { display: flex; align-items: center; gap: 6px; }
+  .field input[type=range] { flex: 1; accent-color: var(--accent); cursor: pointer; }
+  .field .val { min-width: 56px; text-align: right; font-size: 13px; font-weight: 600; color: var(--text); }
+  .field .unit { color: var(--sub); font-size: 11px; min-width: 32px; }
+
+  select { width: 100%; background: var(--input-bg); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius); padding: 7px 10px; font-size: 13px; cursor: pointer; outline: none; }
+  select:focus { border-color: var(--accent); }
+
+  .run-btn { margin-top: 18px; width: 100%; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); padding: 11px; font-size: 14px; font-weight: 700; cursor: pointer; letter-spacing: .4px; transition: opacity .15s; }
+  .run-btn:hover { opacity: .88; }
+  .run-btn:disabled { opacity: .45; cursor: default; }
+
+  /* ── Right panel ────────────────────────────────────────────── */
+  .main { overflow-y: auto; padding: 20px 24px 32px; display: flex; flex-direction: column; gap: 20px; }
+
+  .warnings { background: #1f1608; border: 1px solid var(--warn); border-radius: var(--radius); padding: 12px 14px; }
+  .warnings p { color: var(--warn); font-size: 12.5px; line-height: 1.6; }
+  .warnings p + p { margin-top: 4px; }
+
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+  .card h3 { font-size: 11px; font-weight: 700; color: var(--accent); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 12px; }
+  .kv { display: flex; justify-content: space-between; align-items: baseline; padding: 4px 0; border-bottom: 1px solid #1e2132; }
+  .kv:last-child { border-bottom: none; }
+  .kv .k { color: var(--sub); font-size: 12px; }
+  .kv .v { font-size: 13px; font-weight: 600; }
+  .kv .v.hi { color: var(--accent2); font-size: 16px; }
+  .kv .v.warn { color: var(--warn); }
+
+  /* Range hero */
+  .range-hero { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 24px; display: flex; gap: 40px; align-items: center; flex-wrap: wrap; }
+  .range-hero .metric { text-align: center; }
+  .range-hero .metric .big { font-size: 42px; font-weight: 800; color: var(--accent2); line-height: 1; }
+  .range-hero .metric .unit { color: var(--sub); font-size: 13px; margin-top: 4px; }
+  .range-hero .metric .label { color: var(--sub); font-size: 11px; text-transform: uppercase; letter-spacing: .8px; margin-top: 6px; }
+  .range-hero .divider { width: 1px; height: 60px; background: var(--border); }
+  .range-hero .sub-metrics { display: flex; flex-direction: column; gap: 6px; }
+  .range-hero .sub-metrics .row { display: flex; gap: 30px; }
+  .range-hero .sub-metrics .sm { display: flex; flex-direction: column; }
+  .range-hero .sub-metrics .sm .sv { font-size: 20px; font-weight: 700; }
+  .range-hero .sub-metrics .sm .sl { color: var(--sub); font-size: 11px; text-transform: uppercase; letter-spacing: .6px; }
+
+  /* Chart */
+  .chart-wrap { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+  .chart-wrap h3 { font-size: 11px; font-weight: 700; color: var(--accent); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 12px; }
+  canvas { width: 100%; height: 180px; display: block; }
+
+  /* Sensitivity */
+  .sens-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .sens-bar select { flex: 1; min-width: 180px; }
+  .sens-btn { background: #232638; color: var(--text); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background .15s; }
+  .sens-btn:hover { background: #2e3347; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  thead th { text-align: right; color: var(--sub); font-weight: 600; font-size: 11px; padding: 5px 10px; border-bottom: 1px solid var(--border); }
+  thead th:first-child { text-align: left; }
+  tbody td { text-align: right; padding: 6px 10px; border-bottom: 1px solid #1a1d27; }
+  tbody td:first-child { text-align: left; font-weight: 600; color: var(--accent); }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: #1e2132; }
+
+  .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,.2); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; vertical-align: middle; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .hidden { display: none !important; }
+  .placeholder { color: var(--sub); font-size: 13px; text-align: center; padding: 40px 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="badge">rangesim</span>
+  <div>
+    <h1>Two-Seat Canard · Counter-Rotating Pusher Propfan</h1>
+    <p>60 % thermal efficiency turboshaft · 3D-printed Ti-6Al-4V + graded Al · auto-reconfiguring weight model</p>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- ── Sidebar ─────────────────────────────────────────────────── -->
+  <aside class="sidebar">
+
+    <div class="section-title">Propulsion</div>
+
+    <label>Fan diameter</label>
+    <div class="field">
+      <input type="range" id="fan_diameter_m" min="0.8" max="3.0" step="0.05" value="1.6">
+      <span class="val" id="fan_diameter_m_val">1.60</span>
+      <span class="unit">m</span>
+    </div>
+
+    <label>Engine power (SL rated)</label>
+    <div class="field">
+      <input type="range" id="engine_power_kw" min="80" max="500" step="5" value="220">
+      <span class="val" id="engine_power_kw_val">220</span>
+      <span class="unit">kW</span>
+    </div>
+
+    <div class="section-title">Airframe</div>
+
+    <label>Wingspan</label>
+    <div class="field">
+      <input type="range" id="wingspan_m" min="6" max="16" step="0.25" value="10">
+      <span class="val" id="wingspan_m_val">10.0</span>
+      <span class="unit">m</span>
+    </div>
+
+    <label>Cabin width</label>
+    <div class="field">
+      <input type="range" id="cabin_width_m" min="0.85" max="1.5" step="0.05" value="1.1">
+      <span class="val" id="cabin_width_m_val">1.10</span>
+      <span class="unit">m</span>
+    </div>
+
+    <div class="section-title">Loading</div>
+
+    <label>Fuel loaded</label>
+    <div class="field">
+      <input type="range" id="fuel_mass_kg" min="40" max="400" step="5" value="160">
+      <span class="val" id="fuel_mass_kg_val">160</span>
+      <span class="unit">kg</span>
+    </div>
+
+    <div class="section-title">Cruise</div>
+
+    <label>Cruise speed</label>
+    <div class="field">
+      <input type="range" id="cruise_speed_ktas" min="100" max="320" step="5" value="210">
+      <span class="val" id="cruise_speed_ktas_val">210</span>
+      <span class="unit">KTAS</span>
+    </div>
+
+    <label>Cruise altitude</label>
+    <div class="field">
+      <input type="range" id="cruise_altitude_ft" min="2000" max="35000" step="500" value="20000">
+      <span class="val" id="cruise_altitude_ft_val">20,000</span>
+      <span class="unit">ft</span>
+    </div>
+
+    <label>Stall speed (wing sizing)</label>
+    <div class="field">
+      <input type="range" id="stall_speed_ktas" min="45" max="90" step="1" value="65">
+      <span class="val" id="stall_speed_ktas_val">65</span>
+      <span class="unit">KTAS</span>
+    </div>
+
+    <div class="section-title">Options</div>
+
+    <label>Primary structure material</label>
+    <select id="material">
+      {% for key, lbl in material_labels.items() %}
+      <option value="{{ key }}" {% if key == 'printed_ti_al' %}selected{% endif %}>{{ lbl }}</option>
+      {% endfor %}
+    </select>
+
+    <label>Cruise strategy</label>
+    <select id="strategy">
+      <option value="constant_altitude">Constant altitude</option>
+      <option value="cruise_climb">Cruise-climb (constant IAS)</option>
+    </select>
+
+    <button class="run-btn" id="runBtn" onclick="runSim()">▶  Run simulation</button>
+  </aside>
+
+  <!-- ── Main ───────────────────────────────────────────────────── -->
+  <main class="main" id="mainPanel">
+    <p class="placeholder" id="placeholder">Adjust parameters and click <strong>Run simulation</strong>.</p>
+  </main>
+</div>
+
+<script>
+// ── Slider live display ────────────────────────────────────────
+document.querySelectorAll('input[type=range]').forEach(el => {
+  const upd = () => {
+    const v = parseFloat(el.value);
+    const disp = el.id === 'cruise_altitude_ft' ? v.toLocaleString() :
+                 v % 1 === 0 ? v.toString() : v.toFixed(2);
+    document.getElementById(el.id + '_val').textContent = disp;
+  };
+  el.addEventListener('input', upd);
+  upd();
+});
+
+function collectParams() {
+  const ids = ['fan_diameter_m','engine_power_kw','wingspan_m','cabin_width_m',
+               'fuel_mass_kg','cruise_speed_ktas','cruise_altitude_ft','stall_speed_ktas'];
+  const p = {};
+  ids.forEach(id => p[id] = parseFloat(document.getElementById(id).value));
+  p.material  = document.getElementById('material').value;
+  p.strategy  = document.getElementById('strategy').value;
+  return p;
+}
+
+// ── Run simulation ─────────────────────────────────────────────
+async function runSim() {
+  const btn = document.getElementById('runBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Running…';
+
+  const res = await fetch('/run', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(collectParams())
+  }).then(r => r.json()).catch(e => ({ok:false, error: e.toString()}));
+
+  btn.disabled = false;
+  btn.innerHTML = '▶  Run simulation';
+
+  if (!res.ok) {
+    document.getElementById('mainPanel').innerHTML =
+      `<div class="warnings"><p>Error: ${res.error}</p>${res.trace ? '<pre style="font-size:11px;color:#f88;margin-top:8px">'+res.trace+'</pre>' : ''}</div>`;
+    return;
+  }
+  renderResults(res);
+}
+
+// ── Render results ─────────────────────────────────────────────
+function renderResults(d) {
+  document.getElementById('placeholder')?.remove();
+  const panel = document.getElementById('mainPanel');
+  panel.innerHTML = '';
+
+  // Warnings
+  if (d.warnings && d.warnings.length) {
+    const wdiv = document.createElement('div');
+    wdiv.className = 'warnings';
+    wdiv.innerHTML = d.warnings.map(w => `<p>⚠ ${w}</p>`).join('');
+    panel.appendChild(wdiv);
+  }
+
+  // Range hero
+  panel.appendChild(heroHTML(d));
+
+  // Cards row 1: weights + geometry + propulsion
+  const c1 = document.createElement('div');
+  c1.className = 'cards';
+  c1.appendChild(card('Weight Breakdown', [
+    ['MTOW',          d.weights.mtow_kg + ' kg',      true],
+    ['Empty weight',  d.weights.empty_weight_kg + ' kg'],
+    ['Empty fraction',d.weights.empty_fraction.toFixed(3)],
+    ['Payload',       d.weights.payload_kg + ' kg'],
+    ['Fuel',          d.weights.fuel_kg + ' kg'],
+    ['Wing + canard', (d.weights.wing_kg + d.weights.canard_kg).toFixed(1) + ' kg'],
+    ['Fuselage',      d.weights.fuselage_kg + ' kg'],
+    ['Landing gear',  d.weights.landing_gear_kg + ' kg'],
+    ['  LG leg length', d.weights.landing_gear_leg_m + ' m'],
+    ['Engine + inst.', (d.weights.engine_kg + d.weights.engine_install_kg).toFixed(1) + ' kg'],
+    ['Propfan assy.',  d.weights.propfan_kg + ' kg'],
+  ]));
+  c1.appendChild(card('Geometry & Atmosphere', [
+    ['Wing area',     d.geometry.wing_area_m2 + ' m²'],
+    ['Aspect ratio',  d.geometry.aspect_ratio],
+    ['Wing loading',  d.geometry.wing_loading + ' N/m²'],
+    ['Fuselage L',    d.geometry.fuselage_length + ' m'],
+    ['Fuselage Ø',    d.geometry.fuselage_diam + ' m'],
+    ['Altitude temp', d.atmosphere.temperature_c + ' °C'],
+    ['Density ratio', d.atmosphere.density_ratio],
+    ['Cruise Mach',   d.atmosphere.mach],
+  ]));
+  c1.appendChild(card('Engine & Propfan', [
+    ['Power at altitude', d.engine.power_alt_kw + ' kW'],
+    ['BSFC',          d.engine.bsfc + ' kg/(kW·h)'],
+    ['Engine weight', d.engine.dry_weight_kg + ' kg'],
+    ['Fan RPM',       d.propfan.rpm + ' rpm'],
+    ['Fan tip Mach',  d.propfan.tip_mach],
+    ['Disk area',     d.propfan.disk_area_m2 + ' m²'],
+    ['Prop. efficiency', d.propfan.eta_prop + ' %', false,
+      d.propfan.eta_prop < 80],
+  ]));
+  panel.appendChild(c1);
+
+  // Cards row 2: aero
+  const c2 = document.createElement('div');
+  c2.className = 'cards';
+  c2.appendChild(card('Aerodynamics at Cruise', [
+    ['CL cruise',    d.aero.cl_cruise],
+    ['CD₀ parasite', d.aero.cd0],
+    ['CD total',     d.aero.cd_total],
+    ['L/D cruise',   d.aero.ld_cruise],
+    ['Best L/D',     d.aero.best_ld],
+    ['Best L/D speed', d.aero.best_ld_ktas + ' KTAS'],
+  ]));
+  panel.appendChild(c2);
+
+  // Cruise profile chart
+  if (d.chart_log && d.chart_log.length > 1) {
+    panel.appendChild(chartHTML(d.chart_log));
+  }
+
+  // Sensitivity section
+  panel.appendChild(sensectionHTML());
+}
+
+function heroHTML(d) {
+  const el = document.createElement('div');
+  el.className = 'range-hero';
+  el.innerHTML = `
+    <div class="metric">
+      <div class="big">${Math.round(d.range.step_nm).toLocaleString()}</div>
+      <div class="unit">nautical miles</div>
+      <div class="label">Max range (step sim)</div>
+    </div>
+    <div class="divider"></div>
+    <div class="sub-metrics">
+      <div class="row">
+        <div class="sm"><span class="sv">${Math.round(d.range.step_km).toLocaleString()}</span><span class="sl">km</span></div>
+        <div class="sm"><span class="sv">${d.range.endurance_hr}</span><span class="sl">hr endurance</span></div>
+        <div class="sm"><span class="sv">${Math.round(d.range.breguet_nm).toLocaleString()}</span><span class="sl">nm (Breguet)</span></div>
+      </div>
+      <div class="row">
+        <div class="sm"><span class="sv">${d.range.avg_ld}</span><span class="sl">avg L/D</span></div>
+        <div class="sm"><span class="sv">${d.range.avg_eta}%</span><span class="sl">prop. η</span></div>
+        <div class="sm"><span class="sv">${d.range.fuel_burned_kg} kg</span><span class="sl">fuel burned</span></div>
+      </div>
+    </div>`;
+  return el;
+}
+
+function card(title, rows) {
+  const c = document.createElement('div');
+  c.className = 'card';
+  c.innerHTML = `<h3>${title}</h3>` +
+    rows.map(([k, v, hi, warn]) =>
+      `<div class="kv"><span class="k">${k}</span><span class="v${hi?' hi':''}${warn?' warn':''}">${v}</span></div>`
+    ).join('');
+  return c;
+}
+
+// ── Line chart (range vs time) ─────────────────────────────────
+function chartHTML(log) {
+  const wrap = document.createElement('div');
+  wrap.className = 'chart-wrap';
+  wrap.innerHTML = '<h3>Cruise Profile — Range &amp; L/D over time</h3><canvas id="cruiseChart"></canvas>';
+
+  // Draw after insertion
+  requestAnimationFrame(() => {
+    const canvas = document.getElementById('cruiseChart');
+    if (!canvas) return;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width  = canvas.offsetWidth  * dpr;
+    canvas.height = 180 * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    drawChart(ctx, canvas.offsetWidth, 180, log);
+  });
+  return wrap;
+}
+
+function drawChart(ctx, W, H, log) {
+  const pad = {t:10, r:60, b:28, l:50};
+  const pw = W - pad.l - pad.r;
+  const ph = H - pad.t - pad.b;
+
+  const times  = log.map(r => r.time_min);
+  const ranges = log.map(r => r.range_nm);
+  const lds    = log.map(r => r.ld);
+
+  const tMax = Math.max(...times);
+  const rMax = Math.max(...ranges);
+  const ldMin = Math.min(...lds) * 0.95;
+  const ldMax = Math.max(...lds) * 1.05;
+
+  const tx = t  => pad.l + (t  / tMax) * pw;
+  const ry = r  => pad.t + ph - (r  / rMax) * ph;
+  const ly = ld => pad.t + ph - ((ld - ldMin) / (ldMax - ldMin)) * ph;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Grid
+  ctx.strokeStyle = '#1e2132';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.t + (ph / 4) * i;
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l + pw, y); ctx.stroke();
+  }
+
+  // Range line (left axis, teal)
+  ctx.strokeStyle = '#6fcf97';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  log.forEach((r, i) => { i === 0 ? ctx.moveTo(tx(r.time_min), ry(r.range_nm)) : ctx.lineTo(tx(r.time_min), ry(r.range_nm)); });
+  ctx.stroke();
+
+  // L/D line (right axis, blue)
+  ctx.strokeStyle = '#4f8ef7';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([4, 3]);
+  ctx.beginPath();
+  log.forEach((r, i) => { i === 0 ? ctx.moveTo(tx(r.time_min), ly(r.ld)) : ctx.lineTo(tx(r.time_min), ly(r.ld)); });
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Axes labels
+  ctx.fillStyle = '#8891aa';
+  ctx.font = '10px system-ui';
+  ctx.textAlign = 'right';
+  ctx.fillText('0', pad.l - 4, pad.t + ph);
+  ctx.fillText(Math.round(rMax / 2) + ' nm', pad.l - 4, pad.t + ph / 2);
+  ctx.fillText(Math.round(rMax) + ' nm', pad.l - 4, pad.t + 6);
+
+  ctx.textAlign = 'left';
+  ctx.fillText(ldMin.toFixed(1), pad.l + pw + 4, pad.t + ph);
+  ctx.fillText(((ldMin + ldMax) / 2).toFixed(1), pad.l + pw + 4, pad.t + ph / 2);
+  ctx.fillText(ldMax.toFixed(1), pad.l + pw + 4, pad.t + 6);
+
+  ctx.textAlign = 'center';
+  [0, 0.25, 0.5, 0.75, 1].forEach(f => {
+    ctx.fillText(Math.round(tMax * f) + 'm', pad.l + pw * f, H - 6);
+  });
+
+  // Legend
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#6fcf97'; ctx.fillRect(pad.l + 6, pad.t + 4, 16, 3);
+  ctx.fillStyle = '#8891aa'; ctx.fillText('Range (nm)', pad.l + 26, pad.t + 10);
+  ctx.fillStyle = '#4f8ef7'; ctx.fillRect(pad.l + 110, pad.t + 4, 16, 3);
+  ctx.fillStyle = '#8891aa'; ctx.fillText('L/D', pad.l + 130, pad.t + 10);
+}
+
+// ── Sensitivity section ────────────────────────────────────────
+let sensSection = null;
+
+function sensectionHTML() {
+  const sec = document.createElement('div');
+  sec.id = 'sensSection';
+  const params = {{ sensitivity_params | tojson }};
+  const opts = Object.entries(params)
+    .map(([k, v]) => `<option value="${k}">${v[0]} (${v[2]}–${v[3]} ${v[1]})</option>`)
+    .join('');
+
+  sec.innerHTML = `
+    <div class="card">
+      <h3>Sensitivity Analysis</h3>
+      <div class="sens-bar" style="margin-bottom:12px">
+        <select id="sensParam">${opts}</select>
+        <button class="sens-btn" onclick="runSens()">Run sweep →</button>
+      </div>
+      <div id="sensTable"><p class="placeholder" style="padding:16px 0">Select a parameter and click Run sweep.</p></div>
+    </div>`;
+  return sec;
+}
+
+async function runSens() {
+  const btn = document.querySelector('.sens-btn');
+  btn.disabled = true;
+  btn.textContent = 'Running…';
+
+  const p = collectParams();
+  p.sens_param = document.getElementById('sensParam').value;
+
+  const res = await fetch('/sensitivity', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(p)
+  }).then(r => r.json()).catch(e => ({ok: false, error: e.toString()}));
+
+  btn.disabled = false;
+  btn.textContent = 'Run sweep →';
+
+  const tbl = document.getElementById('sensTable');
+  if (!res.ok) { tbl.innerHTML = `<p style="color:var(--warn)">${res.error}</p>`; return; }
+
+  const rows = res.rows;
+  const highlight = rows.reduce((best, r, i) => r.range_nm > rows[best].range_nm ? i : best, 0);
+
+  tbl.innerHTML = `
+    <table>
+      <thead><tr>
+        <th>${res.label} (${res.unit})</th>
+        <th>MTOW kg</th><th>Empty kg</th><th>LG leg m</th>
+        <th>Wing m²</th><th>AR</th><th>L/D</th><th>Range nm</th><th>Endur hr</th>
+      </tr></thead>
+      <tbody>
+        ${rows.map((r, i) => `<tr ${i===highlight?'style="background:#0d2212"':''}>
+          <td>${r.value}</td>
+          <td>${r.mtow}</td><td>${r.empty_w}</td><td>${r.lg_leg}</td>
+          <td>${r.wing_s}</td><td>${r.ar}</td><td>${r.ld}</td>
+          <td>${i===highlight?'<strong style=\'color:var(--accent2)\'>'+r.range_nm+'</strong>':r.range_nm}</td>
+          <td>${r.endur_hr}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+// Run on load with defaults
+window.addEventListener('DOMContentLoaded', runSim);
+</script>
+</body>
+</html>
