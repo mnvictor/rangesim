@@ -129,7 +129,7 @@
 
     <label>Engine power (SL rated)</label>
     <div class="field">
-      <input type="range" id="engine_power_kw" min="80" max="500" step="5" value="220">
+      <input type="range" id="engine_power_kw" min="80" max="3000" step="10" value="220">
       <span class="val" id="engine_power_kw_val">220</span>
       <span class="unit">kW</span>
     </div>
@@ -271,18 +271,30 @@ function renderResults(d) {
   // Cards row 1: weights + geometry + propulsion
   const c1 = document.createElement('div');
   c1.className = 'cards';
+  const sfLabel = {0.80:'3D-printed Ti+Al', 0.75:'CFRP', 1.00:'Aluminium'}[d.weights.structural_factor] || 'Custom';
+  const tiRow = d.weights.titanium_mass_kg > 0
+    ? ['  Titanium (Ti-6Al-4V)', d.weights.titanium_mass_kg + ' kg']
+    : null;
+  const alRow = d.weights.aluminum_mass_kg > 0
+    ? ['  Graded aluminium',     d.weights.aluminum_mass_kg + ' kg']
+    : null;
+  const matRows = [tiRow, alRow].filter(Boolean);
+
   c1.appendChild(card('Weight Breakdown', [
-    ['MTOW',          d.weights.mtow_kg + ' kg',      true],
-    ['Empty weight',  d.weights.empty_weight_kg + ' kg'],
-    ['Empty fraction',d.weights.empty_fraction.toFixed(3)],
-    ['Payload',       d.weights.payload_kg + ' kg'],
-    ['Fuel',          d.weights.fuel_kg + ' kg'],
-    ['Wing + canard', (d.weights.wing_kg + d.weights.canard_kg).toFixed(1) + ' kg'],
-    ['Fuselage',      d.weights.fuselage_kg + ' kg'],
-    ['Landing gear',  d.weights.landing_gear_kg + ' kg'],
-    ['  LG leg length', d.weights.landing_gear_leg_m + ' m'],
-    ['Engine + inst.', (d.weights.engine_kg + d.weights.engine_install_kg).toFixed(1) + ' kg'],
-    ['Propfan assy.',  d.weights.propfan_kg + ' kg'],
+    ['MTOW',           d.weights.mtow_kg + ' kg',          true],
+    ['Airplane dry mass', d.weights.dry_mass_kg + ' kg',   true],
+    ['  Empty fraction', d.weights.empty_fraction.toFixed(3)],
+    ['Payload',        d.weights.payload_kg + ' kg'],
+    ['Fuel loaded',    d.weights.fuel_kg + ' kg'],
+    ['── Airframe structure (' + sfLabel + ')', ''],
+    ['  Wing + canard', (d.weights.wing_kg + d.weights.canard_kg).toFixed(1) + ' kg'],
+    ['  Fuselage',     d.weights.fuselage_kg + ' kg'],
+    ['  Landing gear', d.weights.landing_gear_kg + ' kg'],
+    ['  LG leg length',d.weights.landing_gear_leg_m + ' m'],
+    ...matRows,
+    ['── Propulsion', ''],
+    ['  Engine + inst.',(d.weights.engine_kg + d.weights.engine_install_kg).toFixed(1) + ' kg'],
+    ['  Propfan assy.', d.weights.propfan_kg + ' kg'],
   ]));
   c1.appendChild(card('Geometry & Atmosphere', [
     ['Wing area',     d.geometry.wing_area_m2 + ' m²'],

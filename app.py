@@ -97,6 +97,7 @@ def run():
             "warnings": warnings,
             "weights": {
                 "mtow_kg":              round(w["mtow_kg"],       1),
+                "dry_mass_kg":          round(w["dry_mass_kg"],   1),
                 "empty_weight_kg":      round(w["empty_weight_kg"],1),
                 "empty_fraction":       round(w["empty_weight_fraction"],3),
                 "payload_kg":           round(w["payload_kg"],    1),
@@ -110,6 +111,10 @@ def run():
                 "engine_install_kg":    round(w["engine_install_kg"],1),
                 "propfan_kg":           round(w["propfan_kg"],     1),
                 "fuel_system_kg":       round(w["fuel_system_kg"], 1),
+                "titanium_mass_kg":     round(w["titanium_mass_kg"], 1),
+                "aluminum_mass_kg":     round(w["aluminum_mass_kg"], 1),
+                "primary_structure_kg": round(w["primary_structure_kg"], 1),
+                "structural_factor":    w["structural_factor"],
             },
             "geometry": {
                 "wing_area_m2":    round(w["wing_area_m2"],    2),

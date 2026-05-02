@@ -67,6 +67,16 @@ STRUCTURAL_FACTOR_ALUMINIUM  = 1.00   # conventional machined aluminium baseline
 # Default: 3D-printed titanium with graded aluminium
 DEFAULT_STRUCTURAL_FACTOR = STRUCTURAL_FACTOR_PRINTED_TI
 
+# Ti / Al mass split within primary airframe structure for each material choice.
+# Primary structure = wing + canard + fuselage + landing gear.
+# "printed_ti_al": mostly Ti (high-stress spars, frames, gear) with graded Al skins/brackets.
+# Key: (ti_fraction, al_fraction)  — must sum to ≤ 1.0; remainder is other (adhesive, seals…)
+TI_AL_SPLIT = {
+    STRUCTURAL_FACTOR_PRINTED_TI: (0.65, 0.35),   # 65 % Ti-6Al-4V, 35 % graded Al
+    STRUCTURAL_FACTOR_CFRP:       (0.00, 0.00),   # CFRP — no Ti or Al in primary structure
+    STRUCTURAL_FACTOR_ALUMINIUM:  (0.00, 1.00),   # all Al
+}
+
 # Wing is sized to meet a sea-level stall speed requirement (CL_max canard-limited)
 CL_MAX_CANARD = 1.00   # canard stalls first; main wing reference CL_max ≈ 1.0
 
@@ -279,6 +289,15 @@ class WeightModel:
 
         leg_length = _landing_gear_leg_length_m(self.fan_diameter_m, fuselage_bottom_h)
 
+        # ── Ti / Al mass breakdown ────────────────────────────────────
+        w_primary_structure = w_wing + w_canard + w_fuse + w_lg
+        ti_frac, al_frac = TI_AL_SPLIT.get(self.structural_factor, (0.0, 0.0))
+        ti_mass_kg = w_primary_structure * ti_frac
+        al_mass_kg = w_primary_structure * al_frac
+
+        # ── Dry mass (no fuel, no payload) ───────────────────────────
+        dry_mass_kg = w_empty   # alias for clarity
+
         return {
             # ── Component breakdown ──────────────────────────────────────
             "wing_kg": w_wing,
@@ -292,6 +311,11 @@ class WeightModel:
             "avionics_electrical_kg": AVIONICS_KG + ELECTRICAL_KG,
             "furnishings_kg": FURNISHINGS_KG + PITOT_STATIC_ETC_KG,
             "empty_weight_kg": w_empty,
+            "dry_mass_kg": dry_mass_kg,
+            # ── Material breakdown ───────────────────────────────────────
+            "primary_structure_kg": w_primary_structure,
+            "titanium_mass_kg": ti_mass_kg,
+            "aluminum_mass_kg": al_mass_kg,
             # ── Useful load ──────────────────────────────────────────────
             "payload_kg": payload_kg,
             "fuel_kg": self.fuel_mass_kg,
