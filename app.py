@@ -38,7 +38,7 @@ SENSITIVITY_PARAMS = {
     "fuel_mass_kg":        ("Fuel mass",           "kg",  60.0,400.0,  7),
     "cabin_width_m":       ("Cabin width",         "m",   0.85, 1.50,  6),
     "cruise_speed_ktas":   ("Cruise speed",        "KTAS",120, 320,    7),
-    "cruise_altitude_ft":  ("Cruise altitude",     "ft", 5000,35000,   7),
+    "cruise_altitude_ft":  ("Cruise altitude",     "ft", 5000,60000,   7),
 }
 
 
