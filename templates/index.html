@@ -161,11 +161,12 @@
 
     <div class="section-title">Cruise</div>
 
-    <label>Cruise speed</label>
+    <label>Cruise speed <span id="maxSpeedHint" style="color:var(--accent2);font-size:11px;margin-left:6px"></span></label>
     <div class="field">
-      <input type="range" id="cruise_speed_ktas" min="100" max="320" step="5" value="210">
+      <input type="range" id="cruise_speed_ktas" min="100" max="500" step="5" value="210">
       <span class="val" id="cruise_speed_ktas_val">210</span>
       <span class="unit">KTAS</span>
+      <button onclick="setMaxSpeed()" title="Set to propfan tip-Mach limit" style="background:var(--accent2);color:#000;border:none;border-radius:4px;padding:2px 7px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">MAX</button>
     </div>
 
     <label>Cruise altitude</label>
@@ -229,6 +230,16 @@ function collectParams() {
   return p;
 }
 
+// ── Max speed helper ───────────────────────────────────────────
+let _maxSpeedKtas = 400;   // updated after each run
+
+function setMaxSpeed() {
+  const sl = document.getElementById('cruise_speed_ktas');
+  const v  = Math.round(_maxSpeedKtas / 5) * 5;   // snap to step
+  sl.value = v;
+  document.getElementById('cruise_speed_ktas_val').textContent = v;
+}
+
 // ── Run simulation ─────────────────────────────────────────────
 async function runSim() {
   const btn = document.getElementById('runBtn');
@@ -242,6 +253,12 @@ async function runSim() {
 
   btn.disabled = false;
   btn.innerHTML = '▶  Run simulation';
+
+  // Update max-speed hint from server result
+  if (res.ok && res.propfan) {
+    _maxSpeedKtas = res.propfan.max_speed_ktas;
+    document.getElementById('maxSpeedHint').textContent = `(max ${_maxSpeedKtas} KTAS at this altitude)`;
+  }
 
   if (!res.ok) {
     document.getElementById('mainPanel').innerHTML =
@@ -311,8 +328,9 @@ function renderResults(d) {
     ['BSFC',          d.engine.bsfc + ' kg/(kW·h)'],
     ['Engine weight', d.engine.dry_weight_kg + ' kg'],
     ['Fan RPM',       d.propfan.rpm + ' rpm'],
-    ['Fan tip Mach',  d.propfan.tip_mach],
-    ['Disk area',     d.propfan.disk_area_m2 + ' m²'],
+    ['Fan tip Mach',      d.propfan.tip_mach, false, d.propfan.tip_mach > 0.85],
+    ['Max feasible speed',d.propfan.max_speed_ktas + ' KTAS', true],
+    ['Disk area',         d.propfan.disk_area_m2 + ' m²'],
     ['Prop. efficiency', d.propfan.eta_prop + ' %', false,
       d.propfan.eta_prop < 80],
   ]));

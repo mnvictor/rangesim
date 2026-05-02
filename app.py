@@ -138,6 +138,7 @@ def run():
                 "rpm":             round(cfg.propfan.design_rpm(v), 0),
                 "tip_mach":        round(cfg.propfan.tip_speed_ms(cfg.propfan.design_rpm(v)) / sos, 3),
                 "eta_prop":        round(eta_prop * 100, 1),
+                "max_speed_ktas":  round(ms_to_ktas(cfg.propfan.max_feasible_speed_ms(sos)), 0),
                 "disk_area_m2":    round(cfg.propfan.disk_area_m2, 2),
             },
             "aero": {
