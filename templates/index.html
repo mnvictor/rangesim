@@ -209,12 +209,19 @@
 
 <script>
 // ── Slider live display ────────────────────────────────────────
+let _sosKtas = 614;   // speed of sound in KTAS — updated after each run (ISA 20k ft default)
+
 document.querySelectorAll('input[type=range]').forEach(el => {
   const upd = () => {
     const v = parseFloat(el.value);
-    const disp = el.id === 'cruise_altitude_ft' ? v.toLocaleString() :
-                 v % 1 === 0 ? v.toString() : v.toFixed(2);
-    document.getElementById(el.id + '_val').textContent = disp;
+    if (el.id === 'cruise_speed_ktas') {
+      const mach = (v / _sosKtas).toFixed(3);
+      document.getElementById('cruise_speed_ktas_val').textContent = `${v} / M${mach}`;
+    } else {
+      const disp = el.id === 'cruise_altitude_ft' ? v.toLocaleString() :
+                   v % 1 === 0 ? v.toString() : v.toFixed(2);
+      document.getElementById(el.id + '_val').textContent = disp;
+    }
   };
   el.addEventListener('input', upd);
   upd();
@@ -230,14 +237,15 @@ function collectParams() {
   return p;
 }
 
-// ── Max speed helper ───────────────────────────────────────────
+// ── Max speed / Mach helpers ───────────────────────────────────
 let _maxSpeedKtas = 400;   // updated after each run
 
 function setMaxSpeed() {
   const sl = document.getElementById('cruise_speed_ktas');
   const v  = Math.round(_maxSpeedKtas / 5) * 5;   // snap to step
   sl.value = v;
-  document.getElementById('cruise_speed_ktas_val').textContent = v;
+  const mach = (v / _sosKtas).toFixed(3);
+  document.getElementById('cruise_speed_ktas_val').textContent = `${v} / M${mach}`;
 }
 
 // ── Run simulation ─────────────────────────────────────────────
@@ -254,10 +262,17 @@ async function runSim() {
   btn.disabled = false;
   btn.innerHTML = '▶  Run simulation';
 
-  // Update max-speed hint from server result
-  if (res.ok && res.propfan) {
+  // Update sos + max-speed from server result — keeps live Mach display accurate
+  if (res.ok && res.atmosphere && res.propfan) {
+    _sosKtas      = res.atmosphere.sos_ktas;
     _maxSpeedKtas = res.propfan.max_speed_ktas;
-    document.getElementById('maxSpeedHint').textContent = `(max ${_maxSpeedKtas} KTAS at this altitude)`;
+    // Refresh slider display with corrected sos
+    const spd = parseFloat(document.getElementById('cruise_speed_ktas').value);
+    document.getElementById('cruise_speed_ktas_val').textContent =
+      `${spd} / M${(spd / _sosKtas).toFixed(3)}`;
+    const maxMach = (_maxSpeedKtas / _sosKtas).toFixed(3);
+    document.getElementById('maxSpeedHint').textContent =
+      `(max ${_maxSpeedKtas} KTAS / M${maxMach})`;
   }
 
   if (!res.ok) {
@@ -329,7 +344,7 @@ function renderResults(d) {
     ['Engine weight', d.engine.dry_weight_kg + ' kg'],
     ['Fan RPM',       d.propfan.rpm + ' rpm'],
     ['Fan tip Mach',      d.propfan.tip_mach, false, d.propfan.tip_mach > 0.85],
-    ['Max feasible speed',d.propfan.max_speed_ktas + ' KTAS', true],
+    ['Max feasible speed', `${d.propfan.max_speed_ktas} KTAS / M${(d.propfan.max_speed_ktas/d.atmosphere.sos_ktas).toFixed(3)}`, true],
     ['Disk area',         d.propfan.disk_area_m2 + ' m²'],
     ['Prop. efficiency', d.propfan.eta_prop + ' %', false,
       d.propfan.eta_prop < 80],
@@ -345,7 +360,7 @@ function renderResults(d) {
     ['CD total',     d.aero.cd_total],
     ['L/D cruise',   d.aero.ld_cruise],
     ['Best L/D',     d.aero.best_ld],
-    ['Best L/D speed', d.aero.best_ld_ktas + ' KTAS'],
+    ['Best L/D speed', `${d.aero.best_ld_ktas} KTAS / M${(d.aero.best_ld_ktas/d.atmosphere.sos_ktas).toFixed(3)}`],
   ]));
   panel.appendChild(c2);
 

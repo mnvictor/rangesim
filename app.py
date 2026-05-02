@@ -128,6 +128,7 @@ def run():
                 "density":         round(rho, 4),
                 "density_ratio":   round(rho / 1.225, 4),
                 "mach":            round(cfg.cruise_mach, 3),
+                "sos_ktas":        round(ms_to_ktas(sos), 1),
             },
             "engine": {
                 "bsfc":            round(cfg.engine.sfc_kg_per_kwh(), 3),
