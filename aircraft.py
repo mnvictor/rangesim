@@ -64,6 +64,13 @@ class AircraftConfig:
     Drives wing area sizing.  Canard stall (CL_max ≈ 1.0) is the constraint.
     """
 
+    # ── Engine type ───────────────────────────────────────────────────────────
+    engine_type: str = "super_turboshaft"
+    """
+    One of "super_turboshaft" | "turboshaft" | "piston".
+    Controls thermal efficiency, power-to-weight, and fuel properties.
+    """
+
     # ── Construction material ─────────────────────────────────────────────────
     structural_factor: float = 0.80
     """
@@ -101,7 +108,7 @@ class AircraftConfig:
         nu = self._atmosphere["kinematic_viscosity_m2_s"]
 
         # 2. Sub-models
-        self._engine = EngineModel(max_power_kw=self.engine_power_kw)
+        self._engine = EngineModel(max_power_kw=self.engine_power_kw, engine_type=self.engine_type)
         self._propfan = PropfanModel(diameter_m=self.fan_diameter_m)
 
         # 3. Cruise speed in m/s
