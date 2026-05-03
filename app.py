@@ -96,11 +96,12 @@ def run():
         P_cruise_kw  = cfg.propfan.shaft_power_w(v, drag_n, rho, sos) / 1000.0
         fuel_flow_gph = cfg.engine.fuel_flow_L_h(P_cruise_kw) / 3.78541
 
-        # MPG: range miles / US gallons burned
-        range_miles  = stepped["range_nm"] * 1.15078
+        # Fuel in gallons, MPG, trip cost
+        range_miles   = stepped["range_nm"] * 1.15078
         liters_burned = stepped["fuel_burned_kg"] / cfg.engine.fuel_density_kg_l
-        gal_burned   = liters_burned / 3.78541
-        range_mpg    = range_miles / gal_burned if gal_burned > 0 else 0.0
+        gal_burned    = liters_burned / 3.78541
+        range_mpg     = range_miles / gal_burned if gal_burned > 0 else 0.0
+        trip_cost_usd = gal_burned * 2.50
 
         # Cruise log for the chart (sample to ≤50 points)
         log = stepped.get("log", [])
@@ -176,9 +177,10 @@ def run():
                 "endurance_hr":   round(stepped["endurance_hr"],     1),
                 "avg_ld":         round(stepped["avg_ld"],           2),
                 "avg_eta":        round(stepped["avg_propulsive_efficiency"]*100, 1),
-                "fuel_burned_kg": round(stepped["fuel_burned_kg"],   1),
+                "fuel_burned_gal": round(gal_burned,                  1),
                 "fuel_flow_gph":  round(fuel_flow_gph,               2),
                 "range_mpg":      round(range_mpg,                   1),
+                "trip_cost_usd":  round(trip_cost_usd,               0),
             },
             "chart_log": chart_log,
         })

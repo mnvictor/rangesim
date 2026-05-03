@@ -43,7 +43,7 @@ class AircraftConfig:
     wingspan_m: float = 10.0
     """Wing tip-to-tip span (m)."""
 
-    cabin_width_m: float = 1.10
+    cabin_width_m: float = 1.11
     """Interior cabin width at shoulder level (m)."""
 
     # ── Mission / loading ─────────────────────────────────────────────────────

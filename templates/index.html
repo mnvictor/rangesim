@@ -154,8 +154,8 @@
 
     <label>Cabin width</label>
     <div class="field">
-      <input type="range" id="cabin_width_m" min="0.85" max="1.5" step="0.05" value="1.1">
-      <span class="val" id="cabin_width_m_val">1.10</span>
+      <input type="range" id="cabin_width_m" min="0.85" max="1.5" step="0.05" value="1.11">
+      <span class="val" id="cabin_width_m_val">1.11</span>
       <span class="unit">m</span>
     </div>
 
@@ -498,11 +498,12 @@ function heroHTML(d) {
       <div class="row">
         <div class="sm"><span class="sv">${d.range.avg_ld}</span><span class="sl">avg L/D</span></div>
         <div class="sm"><span class="sv">${d.range.avg_eta}%</span><span class="sl">prop. η</span></div>
-        <div class="sm"><span class="sv">${d.range.fuel_burned_kg} kg</span><span class="sl">fuel burned</span></div>
+        <div class="sm"><span class="sv">${d.range.fuel_burned_gal} gal</span><span class="sl">fuel burned</span></div>
       </div>
       <div class="row">
-        <div class="sm"><span class="sv">${d.range.fuel_flow_gph}</span><span class="sl">gal/hr (cruise start)</span></div>
+        <div class="sm"><span class="sv">${d.range.fuel_flow_gph}</span><span class="sl">gal/hr start</span></div>
         <div class="sm"><span class="sv">${d.range.range_mpg}</span><span class="sl">mi/gal (US)</span></div>
+        <div class="sm"><span class="sv">$${d.range.trip_cost_usd.toLocaleString()}</span><span class="sl">trip cost ($2.50/gal)</span></div>
       </div>
     </div>`;
   return el;
@@ -518,11 +519,11 @@ function card(title, rows) {
   return c;
 }
 
-// ── Line chart (range vs time) ─────────────────────────────────
+// ── Flight profile chart (altitude & airspeed vs time) ────────
 function chartHTML(log) {
   const wrap = document.createElement('div');
   wrap.className = 'chart-wrap';
-  wrap.innerHTML = '<h3>Cruise Profile — Range &amp; L/D over time</h3><canvas id="cruiseChart"></canvas>';
+  wrap.innerHTML = '<h3>Flight Profile — Altitude &amp; Airspeed over Time</h3><canvas id="cruiseChart"></canvas>';
 
   requestAnimationFrame(() => {
     const canvas = document.getElementById('cruiseChart');
@@ -538,25 +539,32 @@ function chartHTML(log) {
 }
 
 function drawChart(ctx, W, H, log) {
-  const pad = {t:10, r:60, b:28, l:50};
+  const pad = {t:10, r:52, b:28, l:52};
   const pw = W - pad.l - pad.r;
   const ph = H - pad.t - pad.b;
 
   const times  = log.map(r => r.time_min);
-  const ranges = log.map(r => r.range_nm);
-  const lds    = log.map(r => r.ld);
+  const alts   = log.map(r => r.altitude_ft);
+  const speeds = log.map(r => r.v_ktas);
 
   const tMax = Math.max(...times);
-  const rMax = Math.max(...ranges);
-  const ldMin = Math.min(...lds) * 0.95;
-  const ldMax = Math.max(...lds) * 1.05;
 
-  const tx = t  => pad.l + (t  / tMax) * pw;
-  const ry = r  => pad.t + ph - (r  / rMax) * ph;
-  const ly = ld => pad.t + ph - ((ld - ldMin) / (ldMax - ldMin)) * ph;
+  // Scale with padding; guard against flat lines (constant altitude/speed)
+  function axisRange(vals) {
+    const lo = Math.min(...vals), hi = Math.max(...vals);
+    const span = Math.max(hi - lo, Math.max(hi * 0.02, 200));
+    return [lo - span * 0.05, hi + span * 0.10];
+  }
+  const [altLo, altHi]   = axisRange(alts);
+  const [spdLo, spdHi]   = axisRange(speeds);
+
+  const tx = t   => pad.l + (t / tMax) * pw;
+  const ay = alt => pad.t + ph - ((alt - altLo) / (altHi - altLo)) * ph;
+  const sy = spd => pad.t + ph - ((spd - spdLo) / (spdHi - spdLo)) * ph;
 
   ctx.clearRect(0, 0, W, H);
 
+  // Grid
   ctx.strokeStyle = '#1e2132';
   ctx.lineWidth = 1;
   for (let i = 0; i <= 4; i++) {
@@ -564,42 +572,51 @@ function drawChart(ctx, W, H, log) {
     ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l + pw, y); ctx.stroke();
   }
 
+  // Altitude line — teal
   ctx.strokeStyle = '#6fcf97';
   ctx.lineWidth = 2;
   ctx.beginPath();
-  log.forEach((r, i) => { i === 0 ? ctx.moveTo(tx(r.time_min), ry(r.range_nm)) : ctx.lineTo(tx(r.time_min), ry(r.range_nm)); });
+  log.forEach((r, i) => { i === 0 ? ctx.moveTo(tx(r.time_min), ay(r.altitude_ft)) : ctx.lineTo(tx(r.time_min), ay(r.altitude_ft)); });
   ctx.stroke();
 
+  // Airspeed line — blue dashed
   ctx.strokeStyle = '#4f8ef7';
   ctx.lineWidth = 1.5;
   ctx.setLineDash([4, 3]);
   ctx.beginPath();
-  log.forEach((r, i) => { i === 0 ? ctx.moveTo(tx(r.time_min), ly(r.ld)) : ctx.lineTo(tx(r.time_min), ly(r.ld)); });
+  log.forEach((r, i) => { i === 0 ? ctx.moveTo(tx(r.time_min), sy(r.v_ktas)) : ctx.lineTo(tx(r.time_min), sy(r.v_ktas)); });
   ctx.stroke();
   ctx.setLineDash([]);
 
+  // Axis labels
   ctx.fillStyle = '#8891aa';
   ctx.font = '10px system-ui';
+
+  // Left axis — altitude (ft), shown as "20k" etc.
+  const fmtFt = v => v >= 1000 ? Math.round(v/1000) + 'k' : Math.round(v).toString();
   ctx.textAlign = 'right';
-  ctx.fillText('0', pad.l - 4, pad.t + ph);
-  ctx.fillText(Math.round(rMax / 2) + ' nm', pad.l - 4, pad.t + ph / 2);
-  ctx.fillText(Math.round(rMax) + ' nm', pad.l - 4, pad.t + 6);
+  ctx.fillText(fmtFt(altLo + (altHi-altLo)*0.0), pad.l - 4, pad.t + ph);
+  ctx.fillText(fmtFt(altLo + (altHi-altLo)*0.5), pad.l - 4, pad.t + ph/2);
+  ctx.fillText(fmtFt(altHi),                       pad.l - 4, pad.t + 6);
 
+  // Right axis — airspeed (KTAS)
   ctx.textAlign = 'left';
-  ctx.fillText(ldMin.toFixed(1), pad.l + pw + 4, pad.t + ph);
-  ctx.fillText(((ldMin + ldMax) / 2).toFixed(1), pad.l + pw + 4, pad.t + ph / 2);
-  ctx.fillText(ldMax.toFixed(1), pad.l + pw + 4, pad.t + 6);
+  ctx.fillText(Math.round(spdLo + (spdHi-spdLo)*0.0) + 'kt', pad.l + pw + 4, pad.t + ph);
+  ctx.fillText(Math.round(spdLo + (spdHi-spdLo)*0.5) + 'kt', pad.l + pw + 4, pad.t + ph/2);
+  ctx.fillText(Math.round(spdHi) + 'kt',                       pad.l + pw + 4, pad.t + 6);
 
+  // X-axis time labels
   ctx.textAlign = 'center';
   [0, 0.25, 0.5, 0.75, 1].forEach(f => {
     ctx.fillText(Math.round(tMax * f) + 'm', pad.l + pw * f, H - 6);
   });
 
+  // Legend
   ctx.textAlign = 'left';
   ctx.fillStyle = '#6fcf97'; ctx.fillRect(pad.l + 6, pad.t + 4, 16, 3);
-  ctx.fillStyle = '#8891aa'; ctx.fillText('Range (nm)', pad.l + 26, pad.t + 10);
-  ctx.fillStyle = '#4f8ef7'; ctx.fillRect(pad.l + 110, pad.t + 4, 16, 3);
-  ctx.fillStyle = '#8891aa'; ctx.fillText('L/D', pad.l + 130, pad.t + 10);
+  ctx.fillStyle = '#8891aa'; ctx.fillText('Alt (ft)', pad.l + 26, pad.t + 10);
+  ctx.fillStyle = '#4f8ef7'; ctx.fillRect(pad.l + 90, pad.t + 4, 16, 3);
+  ctx.fillStyle = '#8891aa'; ctx.fillText('KTAS', pad.l + 110, pad.t + 10);
 }
 
 // ── Sensitivity section ────────────────────────────────────────
