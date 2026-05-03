@@ -113,6 +113,7 @@ class AircraftConfig:
             cabin_width_m=self.cabin_width_m,
             fan_diameter_m=self.fan_diameter_m,
             stall_speed_ktas=self.stall_speed_ktas,
+            cruise_speed_ms=v_ms,
             fuel_mass_kg=self.fuel_mass_kg,
             engine_model=self._engine,
             propfan_model=self._propfan,
@@ -194,17 +195,33 @@ class AircraftConfig:
         Return a list of warning strings for potentially problematic
         configurations.  Empty list = no warnings.
         """
+        from aerodynamics import CL_MAX_CLEAN
+        from atmosphere import ktas_to_ms
+
         warnings = []
         atm = self._atmosphere
         v = self.cruise_speed_ms
-
-        # Stall margin check (use sea-level density for stall, cruise speed for margin)
         rho = atm["density_kg_m3"]
-        from aerodynamics import CL_MAX_CLEAN
-        from atmosphere import RHO0_KG_M3, ktas_to_ms
+        sos = atm["speed_of_sound_m_s"]
+        nu = atm["kinematic_viscosity_m2_s"]
         W = self.mtow_kg * G0_M_S2
+
+        # CL at cruise vs CL_max check
+        cl_cruise = self.aero.cl(W, v, rho)
+        if cl_cruise > CL_MAX_CLEAN * 0.95:
+            warnings.append(
+                f"Cruise CL {cl_cruise:.3f} is ≥ 95 % of CL_max ({CL_MAX_CLEAN:.2f}) — "
+                f"aircraft is near stall at cruise altitude/speed."
+            )
+        elif cl_cruise > CL_MAX_CLEAN * 0.85:
+            warnings.append(
+                f"Cruise CL {cl_cruise:.3f} is high (> 85 % of CL_max {CL_MAX_CLEAN:.2f}) — "
+                f"very little stall margin at cruise."
+            )
+
+        # Stall margin check (cruise TAS vs. sea-level stall speed — conservative)
         v_stall_sl = ktas_to_ms(self.stall_speed_ktas)
-        stall_margin = v / v_stall_sl   # comparing cruise TAS to SL stall speed (conservative)
+        stall_margin = v / v_stall_sl
         if stall_margin < 1.30:
             warnings.append(
                 f"Low stall margin: {stall_margin:.2f}× (recommend ≥ 1.30×)."
@@ -217,8 +234,6 @@ class AircraftConfig:
             )
 
         # Engine power vs. drag check
-        sos = atm["speed_of_sound_m_s"]
-        nu = atm["kinematic_viscosity_m2_s"]
         drag_n = self.aero.drag_n(W, v, rho, nu)
         thrust_avail = self.propfan.max_thrust_n(
             v, self.engine.max_power_at_altitude_kw(rho) * 1000.0, rho, sos

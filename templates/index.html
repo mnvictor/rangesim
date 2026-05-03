@@ -319,6 +319,7 @@ function renderResults(d) {
     ['Payload',        d.weights.payload_kg + ' kg'],
     ['Fuel loaded',    d.weights.fuel_kg + ' kg'],
     ['── Airframe structure (' + sfLabel + ')', ''],
+    ['  Wing sized by', d.weights.wing_sizing_driver === 'altitude' ? '⬆ cruise altitude' : '⬇ sea-level stall'],
     ['  Wing + canard', (d.weights.wing_kg + d.weights.canard_kg).toFixed(1) + ' kg'],
     ['  Fuselage',     d.weights.fuselage_kg + ' kg'],
     ['  Landing gear', d.weights.landing_gear_kg + ' kg'],
@@ -355,7 +356,8 @@ function renderResults(d) {
   const c2 = document.createElement('div');
   c2.className = 'cards';
   c2.appendChild(card('Aerodynamics at Cruise', [
-    ['CL cruise',    d.aero.cl_cruise],
+    ['CL cruise',    d.aero.cl_cruise, false, d.aero.cl_cruise > 0.85],
+    ['  CL / CL_max', (d.aero.cl_cruise / 1.00).toFixed(3), false, d.aero.cl_cruise > 0.85],
     ['CD₀ parasite', d.aero.cd0],
     ['CD total',     d.aero.cd_total],
     ['L/D cruise',   d.aero.ld_cruise],

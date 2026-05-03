@@ -115,6 +115,7 @@ def run():
                 "aluminum_mass_kg":     round(w["aluminum_mass_kg"], 1),
                 "primary_structure_kg": round(w["primary_structure_kg"], 1),
                 "structural_factor":    w["structural_factor"],
+                "wing_sizing_driver":   w["wing_sizing_driver"],
             },
             "geometry": {
                 "wing_area_m2":    round(w["wing_area_m2"],    2),

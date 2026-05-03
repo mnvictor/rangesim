@@ -208,11 +208,12 @@ class WeightModel:
         fan_diameter_m: float,
         # Performance / sizing
         stall_speed_ktas: float,   # target sea-level stall speed (clean)
+        cruise_speed_ms: float,    # cruise TAS — used for altitude CL constraint
         # Masses (user-set)
         fuel_mass_kg: float,
         # Sub-models
-        engine_model,              # EngineModel instance
-        propfan_model,             # PropfanModel instance
+        engine_model,
+        propfan_model,
         # Material
         structural_factor: float = DEFAULT_STRUCTURAL_FACTOR,
     ):
@@ -220,6 +221,7 @@ class WeightModel:
         self.cabin_width_m = cabin_width_m
         self.fan_diameter_m = fan_diameter_m
         self.stall_speed_ktas = stall_speed_ktas
+        self.cruise_speed_ms = cruise_speed_ms
         self.fuel_mass_kg = fuel_mass_kg
         self.engine = engine_model
         self.propfan = propfan_model
@@ -256,17 +258,26 @@ class WeightModel:
             AVIONICS_KG + ELECTRICAL_KG + FURNISHINGS_KG + PITOT_STATIC_ETC_KG
         )
 
-        # Wing area from sea-level stall speed (CL_max limited by canard stall)
         from atmosphere import RHO0_KG_M3, ktas_to_ms
         V_stall_ms = ktas_to_ms(self.stall_speed_ktas)
+
+        # Cruise CL limit: never exceed 85 % of CL_max at cruise altitude.
+        # This sizes the wing larger when flying high and slow.
+        CL_CRUISE_LIMIT = CL_MAX_CANARD * 0.85
+        V_cruise = self.cruise_speed_ms
 
         # Initial MTOW guess (typical for this class)
         mtow_kg = 750.0
         converged = False
 
         for _ in range(max_iter):
-            # Wing sized to meet stall speed at SL, MTOW
-            S_wing = mtow_kg * G0_M_S2 / (0.5 * RHO0_KG_M3 * V_stall_ms ** 2 * CL_MAX_CANARD)
+            # Wing sized by the LARGER of two constraints:
+            #   1. Sea-level stall speed
+            #   2. Cruise CL margin at cruise altitude (CL_cruise ≤ 0.85 × CL_max)
+            S_stall  = mtow_kg * G0_M_S2 / (0.5 * RHO0_KG_M3 * V_stall_ms ** 2 * CL_MAX_CANARD)
+            S_cruise = mtow_kg * G0_M_S2 / (0.5 * density_kg_m3 * V_cruise ** 2 * CL_CRUISE_LIMIT)
+            S_wing   = max(S_stall, S_cruise)
+            sizing_driver = "altitude" if S_cruise > S_stall else "stall"
             AR = self.wingspan_m ** 2 / S_wing
 
             w_wing = _wing_weight_kg(S_wing, AR, mtow_kg) * sf
@@ -331,4 +342,5 @@ class WeightModel:
             "converged": converged,
             "empty_weight_fraction": w_empty / mtow_kg,
             "structural_factor": self.structural_factor,
+            "wing_sizing_driver": sizing_driver,   # "stall" or "altitude"
         }
