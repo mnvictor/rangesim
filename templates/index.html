@@ -18,81 +18,83 @@
     --radius:  8px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; min-height: 100vh; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 12px; min-height: 100vh; }
 
-  header { background: var(--panel); border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; align-items: center; gap: 14px; }
-  header h1 { font-size: 17px; font-weight: 600; letter-spacing: .3px; }
-  header p  { color: var(--sub); font-size: 12px; }
-  .badge { background: var(--accent); color: #fff; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 99px; letter-spacing: .5px; }
+  header { background: var(--panel); border-bottom: 1px solid var(--border); padding: 9px 16px; display: flex; align-items: center; gap: 10px; }
+  header h1 { font-size: 14px; font-weight: 600; letter-spacing: .3px; }
+  header p  { color: var(--sub); font-size: 11px; }
+  .badge { background: var(--accent); color: #fff; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 99px; letter-spacing: .5px; }
 
-  .layout { display: grid; grid-template-columns: 320px 1fr; height: calc(100vh - 54px); overflow: hidden; }
+  .layout { display: grid; grid-template-columns: 270px 1fr; height: calc(100vh - 42px); overflow: hidden; }
 
   /* ── Left panel ─────────────────────────────────────────────── */
-  .sidebar { background: var(--panel); border-right: 1px solid var(--border); overflow-y: auto; padding: 18px 16px 24px; display: flex; flex-direction: column; gap: 4px; }
+  .sidebar { background: var(--panel); border-right: 1px solid var(--border); overflow-y: auto; padding: 12px 12px 16px; display: flex; flex-direction: column; gap: 2px; }
 
-  .section-title { font-size: 11px; font-weight: 700; color: var(--accent); letter-spacing: 1px; text-transform: uppercase; margin: 14px 0 8px; }
+  .section-title { font-size: 10px; font-weight: 700; color: var(--accent); letter-spacing: 1px; text-transform: uppercase; margin: 10px 0 6px; }
   .section-title:first-child { margin-top: 0; }
 
-  label { display: block; color: var(--sub); font-size: 12px; margin-bottom: 3px; margin-top: 10px; }
+  label { display: block; color: var(--sub); font-size: 11px; margin-bottom: 2px; margin-top: 8px; }
   label:first-of-type { margin-top: 0; }
 
-  .field { display: flex; align-items: center; gap: 6px; }
+  .field { display: flex; align-items: center; gap: 5px; }
   .field input[type=range] { flex: 1; accent-color: var(--accent); cursor: pointer; }
-  .field .val { min-width: 56px; text-align: right; font-size: 13px; font-weight: 600; color: var(--text); }
-  .field .unit { color: var(--sub); font-size: 11px; min-width: 32px; }
+  .field .val { min-width: 68px; text-align: right; font-size: 11px; font-weight: 600; color: var(--text); }
+  .field .unit { color: var(--sub); font-size: 10px; min-width: 28px; }
 
-  select { width: 100%; background: var(--input-bg); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius); padding: 7px 10px; font-size: 13px; cursor: pointer; outline: none; }
+  select { width: 100%; background: var(--input-bg); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius); padding: 5px 8px; font-size: 11px; cursor: pointer; outline: none; }
   select:focus { border-color: var(--accent); }
 
-  .run-btn { margin-top: 18px; width: 100%; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); padding: 11px; font-size: 14px; font-weight: 700; cursor: pointer; letter-spacing: .4px; transition: opacity .15s; }
-  .run-btn:hover { opacity: .88; }
-  .run-btn:disabled { opacity: .45; cursor: default; }
+  .btn-row { display: flex; gap: 6px; margin-top: 12px; }
+  .run-btn  { flex: 1; background: var(--accent);  color: #fff; border: none; border-radius: var(--radius); padding: 8px; font-size: 12px; font-weight: 700; cursor: pointer; letter-spacing: .4px; transition: opacity .15s; }
+  .opt-btn  { flex: 1; background: var(--accent2); color: #000; border: none; border-radius: var(--radius); padding: 8px; font-size: 12px; font-weight: 700; cursor: pointer; letter-spacing: .4px; transition: opacity .15s; }
+  .run-btn:hover, .opt-btn:hover { opacity: .88; }
+  .run-btn:disabled, .opt-btn:disabled { opacity: .45; cursor: default; }
 
   /* ── Right panel ────────────────────────────────────────────── */
-  .main { overflow-y: auto; padding: 20px 24px 32px; display: flex; flex-direction: column; gap: 20px; }
+  .main { overflow-y: auto; padding: 12px 16px 20px; display: flex; flex-direction: column; gap: 12px; }
 
-  .warnings { background: #1f1608; border: 1px solid var(--warn); border-radius: var(--radius); padding: 12px 14px; }
-  .warnings p { color: var(--warn); font-size: 12.5px; line-height: 1.6; }
-  .warnings p + p { margin-top: 4px; }
+  .warnings { background: #1f1608; border: 1px solid var(--warn); border-radius: var(--radius); padding: 8px 10px; }
+  .warnings p { color: var(--warn); font-size: 11px; line-height: 1.5; }
+  .warnings p + p { margin-top: 3px; }
 
-  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-  .card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
-  .card h3 { font-size: 11px; font-weight: 700; color: var(--accent); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 12px; }
-  .kv { display: flex; justify-content: space-between; align-items: baseline; padding: 4px 0; border-bottom: 1px solid #1e2132; }
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; }
+  .card h3 { font-size: 10px; font-weight: 700; color: var(--accent); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+  .kv { display: flex; justify-content: space-between; align-items: baseline; padding: 2px 0; border-bottom: 1px solid #1e2132; }
   .kv:last-child { border-bottom: none; }
-  .kv .k { color: var(--sub); font-size: 12px; }
-  .kv .v { font-size: 13px; font-weight: 600; }
-  .kv .v.hi { color: var(--accent2); font-size: 16px; }
+  .kv .k { color: var(--sub); font-size: 11px; }
+  .kv .v { font-size: 11px; font-weight: 600; }
+  .kv .v.hi { color: var(--accent2); font-size: 14px; }
   .kv .v.warn { color: var(--warn); }
 
   /* Range hero */
-  .range-hero { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 24px; display: flex; gap: 40px; align-items: center; flex-wrap: wrap; }
+  .range-hero { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 16px; display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
   .range-hero .metric { text-align: center; }
-  .range-hero .metric .big { font-size: 42px; font-weight: 800; color: var(--accent2); line-height: 1; }
-  .range-hero .metric .unit { color: var(--sub); font-size: 13px; margin-top: 4px; }
-  .range-hero .metric .label { color: var(--sub); font-size: 11px; text-transform: uppercase; letter-spacing: .8px; margin-top: 6px; }
-  .range-hero .divider { width: 1px; height: 60px; background: var(--border); }
-  .range-hero .sub-metrics { display: flex; flex-direction: column; gap: 6px; }
-  .range-hero .sub-metrics .row { display: flex; gap: 30px; }
+  .range-hero .metric .big { font-size: 32px; font-weight: 800; color: var(--accent2); line-height: 1; }
+  .range-hero .metric .unit { color: var(--sub); font-size: 11px; margin-top: 3px; }
+  .range-hero .metric .label { color: var(--sub); font-size: 10px; text-transform: uppercase; letter-spacing: .8px; margin-top: 4px; }
+  .range-hero .divider { width: 1px; height: 46px; background: var(--border); }
+  .range-hero .sub-metrics { display: flex; flex-direction: column; gap: 4px; }
+  .range-hero .sub-metrics .row { display: flex; gap: 18px; }
   .range-hero .sub-metrics .sm { display: flex; flex-direction: column; }
-  .range-hero .sub-metrics .sm .sv { font-size: 20px; font-weight: 700; }
-  .range-hero .sub-metrics .sm .sl { color: var(--sub); font-size: 11px; text-transform: uppercase; letter-spacing: .6px; }
+  .range-hero .sub-metrics .sm .sv { font-size: 15px; font-weight: 700; }
+  .range-hero .sub-metrics .sm .sl { color: var(--sub); font-size: 10px; text-transform: uppercase; letter-spacing: .6px; }
 
   /* Chart */
-  .chart-wrap { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
-  .chart-wrap h3 { font-size: 11px; font-weight: 700; color: var(--accent); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 12px; }
-  canvas { width: 100%; height: 180px; display: block; }
+  .chart-wrap { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; }
+  .chart-wrap h3 { font-size: 10px; font-weight: 700; color: var(--accent); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+  canvas { width: 100%; height: 140px; display: block; }
 
   /* Sensitivity */
-  .sens-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-  .sens-bar select { flex: 1; min-width: 180px; }
-  .sens-btn { background: #232638; color: var(--text); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background .15s; }
+  .sens-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .sens-bar select { flex: 1; min-width: 160px; }
+  .sens-btn { background: #232638; color: var(--text); border: 1px solid var(--border); border-radius: var(--radius); padding: 6px 12px; font-size: 11px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background .15s; }
   .sens-btn:hover { background: #2e3347; }
 
-  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
-  thead th { text-align: right; color: var(--sub); font-weight: 600; font-size: 11px; padding: 5px 10px; border-bottom: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  thead th { text-align: right; color: var(--sub); font-weight: 600; font-size: 10px; padding: 4px 8px; border-bottom: 1px solid var(--border); }
   thead th:first-child { text-align: left; }
-  tbody td { text-align: right; padding: 6px 10px; border-bottom: 1px solid #1a1d27; }
+  tbody td { text-align: right; padding: 4px 8px; border-bottom: 1px solid #1a1d27; }
   tbody td:first-child { text-align: left; font-weight: 600; color: var(--accent); }
   tbody tr:last-child td { border-bottom: none; }
   tbody tr:hover td { background: #1e2132; }
@@ -101,6 +103,7 @@
   @keyframes spin { to { transform: rotate(360deg); } }
   .hidden { display: none !important; }
   .placeholder { color: var(--sub); font-size: 13px; text-align: center; padding: 40px 0; }
+  .opt-toast { background: #0d2212; border: 1px solid var(--accent2); border-radius: var(--radius); padding: 10px 14px; font-size: 12.5px; color: var(--accent2); }
 </style>
 </head>
 <body>
@@ -109,7 +112,7 @@
   <span class="badge">rangesim</span>
   <div>
     <h1>Two-Seat Canard · Counter-Rotating Pusher Propfan</h1>
-    <p>60 % thermal efficiency turboshaft · 3D-printed Ti-6Al-4V + graded Al · auto-reconfiguring weight model</p>
+    <p>3D-printed Ti-6Al-4V + graded Al · auto-reconfiguring weight model · step-integration range sim</p>
   </div>
 </header>
 
@@ -120,6 +123,13 @@
 
     <div class="section-title">Propulsion</div>
 
+    <label>Engine type</label>
+    <select id="engine_type" onchange="onEngineTypeChange()">
+      {% for key, lbl in engine_type_labels.items() %}
+      <option value="{{ key }}" {% if key == 'super_turboshaft' %}selected{% endif %}>{{ lbl }}</option>
+      {% endfor %}
+    </select>
+
     <label>Fan diameter</label>
     <div class="field">
       <input type="range" id="fan_diameter_m" min="0.8" max="3.0" step="0.05" value="1.6">
@@ -129,9 +139,8 @@
 
     <label>Engine power (SL rated)</label>
     <div class="field">
-      <input type="range" id="engine_power_kw" min="80" max="500" step="5" value="220">
-      <span class="val" id="engine_power_kw_val">220</span>
-      <span class="unit">kW</span>
+      <input type="range" id="engine_power_kw" min="30" max="3000" step="10" value="220">
+      <span class="val" id="engine_power_kw_val">220 kW</span>
     </div>
 
     <div class="section-title">Airframe</div>
@@ -145,8 +154,8 @@
 
     <label>Cabin width</label>
     <div class="field">
-      <input type="range" id="cabin_width_m" min="0.85" max="1.5" step="0.05" value="1.1">
-      <span class="val" id="cabin_width_m_val">1.10</span>
+      <input type="range" id="cabin_width_m" min="0.85" max="1.5" step="0.05" value="1.11">
+      <span class="val" id="cabin_width_m_val">1.11</span>
       <span class="unit">m</span>
     </div>
 
@@ -161,16 +170,17 @@
 
     <div class="section-title">Cruise</div>
 
-    <label>Cruise speed</label>
+    <label>Cruise speed <span id="maxSpeedHint" style="color:var(--accent2);font-size:11px;margin-left:6px"></span></label>
     <div class="field">
-      <input type="range" id="cruise_speed_ktas" min="100" max="320" step="5" value="210">
-      <span class="val" id="cruise_speed_ktas_val">210</span>
+      <input type="range" id="cruise_speed_ktas" min="100" max="500" step="5" value="210">
+      <span class="val" id="cruise_speed_ktas_val">210 / M0.342</span>
       <span class="unit">KTAS</span>
+      <button onclick="setMaxSpeed()" title="Set to propfan tip-Mach limit" style="background:var(--accent2);color:#000;border:none;border-radius:4px;padding:2px 7px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">MAX</button>
     </div>
 
     <label>Cruise altitude</label>
     <div class="field">
-      <input type="range" id="cruise_altitude_ft" min="2000" max="35000" step="500" value="20000">
+      <input type="range" id="cruise_altitude_ft" min="2000" max="60000" step="500" value="20000">
       <span class="val" id="cruise_altitude_ft_val">20,000</span>
       <span class="unit">ft</span>
     </div>
@@ -197,23 +207,60 @@
       <option value="cruise_climb">Cruise-climb (constant IAS)</option>
     </select>
 
-    <button class="run-btn" id="runBtn" onclick="runSim()">▶  Run simulation</button>
+    <div class="btn-row">
+      <button class="run-btn" id="runBtn" onclick="runSim()">▶  Run</button>
+      <button class="opt-btn" id="optBtn" onclick="optimizeSim()">⚡ Optimize</button>
+    </div>
   </aside>
 
   <!-- ── Main ───────────────────────────────────────────────────── -->
   <main class="main" id="mainPanel">
-    <p class="placeholder" id="placeholder">Adjust parameters and click <strong>Run simulation</strong>.</p>
+    <p class="placeholder" id="placeholder">Adjust parameters and click <strong>Run</strong>.</p>
   </main>
 </div>
 
 <script>
+// ── Engine type config (mirrors engine.py ENGINE_CONFIGS) ──────
+const ENGINE_MAX_KW = {
+  super_turboshaft: 3000,
+  turboshaft:       447.4,   // 600 HP
+  piston:           260.99,  // 350 HP
+};
+const ENGINE_MIN_KW = { super_turboshaft: 30, turboshaft: 30, piston: 20 };
+
+function onEngineTypeChange() {
+  const et  = document.getElementById('engine_type').value;
+  const sl  = document.getElementById('engine_power_kw');
+  const max = ENGINE_MAX_KW[et];
+  sl.max  = max;
+  sl.step = et === 'super_turboshaft' ? 10 : 5;
+  if (parseFloat(sl.value) > max) sl.value = max;
+  updatePowerDisplay(parseFloat(sl.value));
+}
+
+function updatePowerDisplay(kw) {
+  const et = document.getElementById('engine_type').value;
+  const hp = Math.round(kw / 0.7457);
+  const txt = et === 'super_turboshaft' ? `${kw} kW` : `${kw} kW / ${hp} HP`;
+  document.getElementById('engine_power_kw_val').textContent = txt;
+}
+
 // ── Slider live display ────────────────────────────────────────
+let _sosKtas = 614;   // speed of sound in KTAS — updated after each run
+
 document.querySelectorAll('input[type=range]').forEach(el => {
   const upd = () => {
     const v = parseFloat(el.value);
-    const disp = el.id === 'cruise_altitude_ft' ? v.toLocaleString() :
-                 v % 1 === 0 ? v.toString() : v.toFixed(2);
-    document.getElementById(el.id + '_val').textContent = disp;
+    if (el.id === 'cruise_speed_ktas') {
+      const mach = (v / _sosKtas).toFixed(3);
+      document.getElementById('cruise_speed_ktas_val').textContent = `${v} / M${mach}`;
+    } else if (el.id === 'engine_power_kw') {
+      updatePowerDisplay(v);
+    } else {
+      const disp = el.id === 'cruise_altitude_ft' ? v.toLocaleString() :
+                   v % 1 === 0 ? v.toString() : v.toFixed(2);
+      document.getElementById(el.id + '_val').textContent = disp;
+    }
   };
   el.addEventListener('input', upd);
   upd();
@@ -224,9 +271,21 @@ function collectParams() {
                'fuel_mass_kg','cruise_speed_ktas','cruise_altitude_ft','stall_speed_ktas'];
   const p = {};
   ids.forEach(id => p[id] = parseFloat(document.getElementById(id).value));
-  p.material  = document.getElementById('material').value;
-  p.strategy  = document.getElementById('strategy').value;
+  p.material    = document.getElementById('material').value;
+  p.strategy    = document.getElementById('strategy').value;
+  p.engine_type = document.getElementById('engine_type').value;
   return p;
+}
+
+// ── Max speed / Mach helpers ───────────────────────────────────
+let _maxSpeedKtas = 400;
+
+function setMaxSpeed() {
+  const sl = document.getElementById('cruise_speed_ktas');
+  const v  = Math.round(_maxSpeedKtas / 5) * 5;
+  sl.value = v;
+  document.getElementById('cruise_speed_ktas_val').textContent =
+    `${v} / M${(v / _sosKtas).toFixed(3)}`;
 }
 
 // ── Run simulation ─────────────────────────────────────────────
@@ -241,7 +300,18 @@ async function runSim() {
   }).then(r => r.json()).catch(e => ({ok:false, error: e.toString()}));
 
   btn.disabled = false;
-  btn.innerHTML = '▶  Run simulation';
+  btn.innerHTML = '▶  Run';
+
+  if (res.ok && res.atmosphere && res.propfan) {
+    _sosKtas      = res.atmosphere.sos_ktas;
+    _maxSpeedKtas = res.propfan.max_speed_ktas;
+    const spd = parseFloat(document.getElementById('cruise_speed_ktas').value);
+    document.getElementById('cruise_speed_ktas_val').textContent =
+      `${spd} / M${(spd / _sosKtas).toFixed(3)}`;
+    const maxMach = (_maxSpeedKtas / _sosKtas).toFixed(3);
+    document.getElementById('maxSpeedHint').textContent =
+      `(max ${_maxSpeedKtas} KTAS / M${maxMach})`;
+  }
 
   if (!res.ok) {
     document.getElementById('mainPanel').innerHTML =
@@ -249,6 +319,65 @@ async function runSim() {
     return;
   }
   renderResults(res);
+}
+
+// ── Optimize ───────────────────────────────────────────────────
+async function optimizeSim() {
+  const btn = document.getElementById('optBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Optimizing…';
+
+  // Send only the fixed parameters
+  const p = collectParams();
+  const payload = {
+    fuel_mass_kg:       p.fuel_mass_kg,
+    cruise_speed_ktas:  p.cruise_speed_ktas,
+    cabin_width_m:      p.cabin_width_m,
+    stall_speed_ktas:   p.stall_speed_ktas,
+    cruise_altitude_ft: p.cruise_altitude_ft,
+    material:           p.material,
+    engine_type:        p.engine_type,
+    strategy:           p.strategy,
+  };
+
+  const res = await fetch('/optimize', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(payload)
+  }).then(r => r.json()).catch(e => ({ok:false, error: e.toString()}));
+
+  btn.disabled = false;
+  btn.innerHTML = '⚡ Optimize';
+
+  if (!res.ok) {
+    alert('Optimizer error: ' + res.error);
+    return;
+  }
+
+  // Apply optimal parameters to sliders
+  const op = res.params;
+  const et = document.getElementById('engine_type').value;
+  const maxPwr = ENGINE_MAX_KW[et];
+
+  function setSlider(id, val) {
+    const sl = document.getElementById(id);
+    if (!sl) return;
+    sl.value = Math.min(Math.max(val, parseFloat(sl.min)), parseFloat(sl.max));
+    sl.dispatchEvent(new Event('input'));
+  }
+
+  setSlider('fan_diameter_m',  op.fan_diameter_m);
+  setSlider('wingspan_m',      op.wingspan_m);
+  setSlider('engine_power_kw', Math.min(op.engine_power_kw, maxPwr));
+
+  // Show a toast with estimated range before full run
+  const toast = document.createElement('div');
+  toast.className = 'opt-toast';
+  toast.textContent = `⚡ Optimizer found ${op.breguet_range_nm.toLocaleString()} nm (Breguet) — running full simulation…`;
+  const panel = document.getElementById('mainPanel');
+  panel.insertBefore(toast, panel.firstChild);
+
+  // Trigger full simulation with new params
+  await runSim();
 }
 
 // ── Render results ─────────────────────────────────────────────
@@ -271,18 +400,37 @@ function renderResults(d) {
   // Cards row 1: weights + geometry + propulsion
   const c1 = document.createElement('div');
   c1.className = 'cards';
+  const sfLabel = {0.80:'3D-printed Ti+Al', 0.75:'CFRP', 1.00:'Aluminium'}[d.weights.structural_factor] || 'Custom';
+  const tiRow = d.weights.titanium_mass_kg > 0
+    ? ['  Titanium (Ti-6Al-4V)', d.weights.titanium_mass_kg + ' kg']
+    : null;
+  const alRow = d.weights.aluminum_mass_kg > 0
+    ? ['  Graded aluminium',     d.weights.aluminum_mass_kg + ' kg']
+    : null;
+  const matRows = [tiRow, alRow].filter(Boolean);
+
+  const engineTypeLabels = {
+    super_turboshaft: 'Super turboshaft',
+    turboshaft: 'Conventional turboshaft',
+    piston: 'Piston aero engine',
+  };
+
   c1.appendChild(card('Weight Breakdown', [
-    ['MTOW',          d.weights.mtow_kg + ' kg',      true],
-    ['Empty weight',  d.weights.empty_weight_kg + ' kg'],
-    ['Empty fraction',d.weights.empty_fraction.toFixed(3)],
-    ['Payload',       d.weights.payload_kg + ' kg'],
-    ['Fuel',          d.weights.fuel_kg + ' kg'],
-    ['Wing + canard', (d.weights.wing_kg + d.weights.canard_kg).toFixed(1) + ' kg'],
-    ['Fuselage',      d.weights.fuselage_kg + ' kg'],
-    ['Landing gear',  d.weights.landing_gear_kg + ' kg'],
-    ['  LG leg length', d.weights.landing_gear_leg_m + ' m'],
-    ['Engine + inst.', (d.weights.engine_kg + d.weights.engine_install_kg).toFixed(1) + ' kg'],
-    ['Propfan assy.',  d.weights.propfan_kg + ' kg'],
+    ['MTOW',           d.weights.mtow_kg + ' kg',          true],
+    ['Airplane dry mass', d.weights.dry_mass_kg + ' kg',   true],
+    ['  Empty fraction', d.weights.empty_fraction.toFixed(3)],
+    ['Payload',        d.weights.payload_kg + ' kg'],
+    ['Fuel loaded',    d.weights.fuel_kg + ' kg'],
+    ['── Airframe structure (' + sfLabel + ')', ''],
+    ['  Wing sized by', d.weights.wing_sizing_driver === 'altitude' ? '⬆ cruise altitude' : '⬇ sea-level stall'],
+    ['  Wing + canard', (d.weights.wing_kg + d.weights.canard_kg).toFixed(1) + ' kg'],
+    ['  Fuselage',     d.weights.fuselage_kg + ' kg'],
+    ['  Landing gear', d.weights.landing_gear_kg + ' kg'],
+    ['  LG leg length',d.weights.landing_gear_leg_m + ' m'],
+    ...matRows,
+    ['── Propulsion', ''],
+    ['  Engine + inst.',(d.weights.engine_kg + d.weights.engine_install_kg).toFixed(1) + ' kg'],
+    ['  Propfan assy.', d.weights.propfan_kg + ' kg'],
   ]));
   c1.appendChild(card('Geometry & Atmosphere', [
     ['Wing area',     d.geometry.wing_area_m2 + ' m²'],
@@ -294,15 +442,17 @@ function renderResults(d) {
     ['Density ratio', d.atmosphere.density_ratio],
     ['Cruise Mach',   d.atmosphere.mach],
   ]));
+  const etLabel = engineTypeLabels[d.engine.engine_type] || d.engine.engine_type;
   c1.appendChild(card('Engine & Propfan', [
+    ['Engine type',   etLabel],
+    ['Thermal eff.',  d.engine.thermal_eff_pct + ' %', false, d.engine.thermal_eff_pct < 35],
     ['Power at altitude', d.engine.power_alt_kw + ' kW'],
     ['BSFC',          d.engine.bsfc + ' kg/(kW·h)'],
     ['Engine weight', d.engine.dry_weight_kg + ' kg'],
     ['Fan RPM',       d.propfan.rpm + ' rpm'],
-    ['Fan tip Mach',  d.propfan.tip_mach],
-    ['Disk area',     d.propfan.disk_area_m2 + ' m²'],
-    ['Prop. efficiency', d.propfan.eta_prop + ' %', false,
-      d.propfan.eta_prop < 80],
+    ['Fan tip Mach',      d.propfan.tip_mach, false, d.propfan.tip_mach > 0.85],
+    ['Max feasible speed', `${d.propfan.max_speed_ktas} KTAS / M${(d.propfan.max_speed_ktas/d.atmosphere.sos_ktas).toFixed(3)}`, true],
+    ['Prop. efficiency', d.propfan.eta_prop + ' %', false, d.propfan.eta_prop < 80],
   ]));
   panel.appendChild(c1);
 
@@ -310,12 +460,13 @@ function renderResults(d) {
   const c2 = document.createElement('div');
   c2.className = 'cards';
   c2.appendChild(card('Aerodynamics at Cruise', [
-    ['CL cruise',    d.aero.cl_cruise],
+    ['CL cruise',    d.aero.cl_cruise, false, d.aero.cl_cruise > 0.85],
+    ['  CL / CL_max', (d.aero.cl_cruise / 1.00).toFixed(3), false, d.aero.cl_cruise > 0.85],
     ['CD₀ parasite', d.aero.cd0],
     ['CD total',     d.aero.cd_total],
     ['L/D cruise',   d.aero.ld_cruise],
     ['Best L/D',     d.aero.best_ld],
-    ['Best L/D speed', d.aero.best_ld_ktas + ' KTAS'],
+    ['Best L/D speed', `${d.aero.best_ld_ktas} KTAS / M${(d.aero.best_ld_ktas/d.atmosphere.sos_ktas).toFixed(3)}`],
   ]));
   panel.appendChild(c2);
 
@@ -347,7 +498,12 @@ function heroHTML(d) {
       <div class="row">
         <div class="sm"><span class="sv">${d.range.avg_ld}</span><span class="sl">avg L/D</span></div>
         <div class="sm"><span class="sv">${d.range.avg_eta}%</span><span class="sl">prop. η</span></div>
-        <div class="sm"><span class="sv">${d.range.fuel_burned_kg} kg</span><span class="sl">fuel burned</span></div>
+        <div class="sm"><span class="sv">${d.range.fuel_burned_gal} gal</span><span class="sl">fuel burned</span></div>
+      </div>
+      <div class="row">
+        <div class="sm"><span class="sv">${d.range.fuel_flow_gph}</span><span class="sl">gal/hr start</span></div>
+        <div class="sm"><span class="sv">${d.range.range_mpg}</span><span class="sl">mi/gal (US)</span></div>
+        <div class="sm"><span class="sv">$${d.range.trip_cost_usd.toLocaleString()}</span><span class="sl">trip cost ($2.50/gal)</span></div>
       </div>
     </div>`;
   return el;
@@ -363,43 +519,48 @@ function card(title, rows) {
   return c;
 }
 
-// ── Line chart (range vs time) ─────────────────────────────────
+// ── Flight profile chart (altitude & airspeed vs time) ────────
 function chartHTML(log) {
   const wrap = document.createElement('div');
   wrap.className = 'chart-wrap';
-  wrap.innerHTML = '<h3>Cruise Profile — Range &amp; L/D over time</h3><canvas id="cruiseChart"></canvas>';
+  wrap.innerHTML = '<h3>Flight Profile — Altitude &amp; Airspeed over Time</h3><canvas id="cruiseChart"></canvas>';
 
-  // Draw after insertion
   requestAnimationFrame(() => {
     const canvas = document.getElementById('cruiseChart');
     if (!canvas) return;
     const dpr = window.devicePixelRatio || 1;
     canvas.width  = canvas.offsetWidth  * dpr;
-    canvas.height = 180 * dpr;
+    canvas.height = 140 * dpr;
     const ctx = canvas.getContext('2d');
     ctx.scale(dpr, dpr);
-    drawChart(ctx, canvas.offsetWidth, 180, log);
+    drawChart(ctx, canvas.offsetWidth, 140, log);
   });
   return wrap;
 }
 
 function drawChart(ctx, W, H, log) {
-  const pad = {t:10, r:60, b:28, l:50};
+  const pad = {t:10, r:52, b:28, l:52};
   const pw = W - pad.l - pad.r;
   const ph = H - pad.t - pad.b;
 
   const times  = log.map(r => r.time_min);
-  const ranges = log.map(r => r.range_nm);
-  const lds    = log.map(r => r.ld);
+  const alts   = log.map(r => r.altitude_ft);
+  const speeds = log.map(r => r.v_ktas);
 
   const tMax = Math.max(...times);
-  const rMax = Math.max(...ranges);
-  const ldMin = Math.min(...lds) * 0.95;
-  const ldMax = Math.max(...lds) * 1.05;
 
-  const tx = t  => pad.l + (t  / tMax) * pw;
-  const ry = r  => pad.t + ph - (r  / rMax) * ph;
-  const ly = ld => pad.t + ph - ((ld - ldMin) / (ldMax - ldMin)) * ph;
+  // Scale with padding; guard against flat lines (constant altitude/speed)
+  function axisRange(vals) {
+    const lo = Math.min(...vals), hi = Math.max(...vals);
+    const span = Math.max(hi - lo, Math.max(hi * 0.02, 200));
+    return [lo - span * 0.05, hi + span * 0.10];
+  }
+  const [altLo, altHi]   = axisRange(alts);
+  const [spdLo, spdHi]   = axisRange(speeds);
+
+  const tx = t   => pad.l + (t / tMax) * pw;
+  const ay = alt => pad.t + ph - ((alt - altLo) / (altHi - altLo)) * ph;
+  const sy = spd => pad.t + ph - ((spd - spdLo) / (spdHi - spdLo)) * ph;
 
   ctx.clearRect(0, 0, W, H);
 
@@ -411,35 +572,40 @@ function drawChart(ctx, W, H, log) {
     ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l + pw, y); ctx.stroke();
   }
 
-  // Range line (left axis, teal)
+  // Altitude line — teal
   ctx.strokeStyle = '#6fcf97';
   ctx.lineWidth = 2;
   ctx.beginPath();
-  log.forEach((r, i) => { i === 0 ? ctx.moveTo(tx(r.time_min), ry(r.range_nm)) : ctx.lineTo(tx(r.time_min), ry(r.range_nm)); });
+  log.forEach((r, i) => { i === 0 ? ctx.moveTo(tx(r.time_min), ay(r.altitude_ft)) : ctx.lineTo(tx(r.time_min), ay(r.altitude_ft)); });
   ctx.stroke();
 
-  // L/D line (right axis, blue)
+  // Airspeed line — blue dashed
   ctx.strokeStyle = '#4f8ef7';
   ctx.lineWidth = 1.5;
   ctx.setLineDash([4, 3]);
   ctx.beginPath();
-  log.forEach((r, i) => { i === 0 ? ctx.moveTo(tx(r.time_min), ly(r.ld)) : ctx.lineTo(tx(r.time_min), ly(r.ld)); });
+  log.forEach((r, i) => { i === 0 ? ctx.moveTo(tx(r.time_min), sy(r.v_ktas)) : ctx.lineTo(tx(r.time_min), sy(r.v_ktas)); });
   ctx.stroke();
   ctx.setLineDash([]);
 
-  // Axes labels
+  // Axis labels
   ctx.fillStyle = '#8891aa';
   ctx.font = '10px system-ui';
+
+  // Left axis — altitude (ft), shown as "20k" etc.
+  const fmtFt = v => v >= 1000 ? Math.round(v/1000) + 'k' : Math.round(v).toString();
   ctx.textAlign = 'right';
-  ctx.fillText('0', pad.l - 4, pad.t + ph);
-  ctx.fillText(Math.round(rMax / 2) + ' nm', pad.l - 4, pad.t + ph / 2);
-  ctx.fillText(Math.round(rMax) + ' nm', pad.l - 4, pad.t + 6);
+  ctx.fillText(fmtFt(altLo + (altHi-altLo)*0.0), pad.l - 4, pad.t + ph);
+  ctx.fillText(fmtFt(altLo + (altHi-altLo)*0.5), pad.l - 4, pad.t + ph/2);
+  ctx.fillText(fmtFt(altHi),                       pad.l - 4, pad.t + 6);
 
+  // Right axis — airspeed (KTAS)
   ctx.textAlign = 'left';
-  ctx.fillText(ldMin.toFixed(1), pad.l + pw + 4, pad.t + ph);
-  ctx.fillText(((ldMin + ldMax) / 2).toFixed(1), pad.l + pw + 4, pad.t + ph / 2);
-  ctx.fillText(ldMax.toFixed(1), pad.l + pw + 4, pad.t + 6);
+  ctx.fillText(Math.round(spdLo + (spdHi-spdLo)*0.0) + 'kt', pad.l + pw + 4, pad.t + ph);
+  ctx.fillText(Math.round(spdLo + (spdHi-spdLo)*0.5) + 'kt', pad.l + pw + 4, pad.t + ph/2);
+  ctx.fillText(Math.round(spdHi) + 'kt',                       pad.l + pw + 4, pad.t + 6);
 
+  // X-axis time labels
   ctx.textAlign = 'center';
   [0, 0.25, 0.5, 0.75, 1].forEach(f => {
     ctx.fillText(Math.round(tMax * f) + 'm', pad.l + pw * f, H - 6);
@@ -448,14 +614,12 @@ function drawChart(ctx, W, H, log) {
   // Legend
   ctx.textAlign = 'left';
   ctx.fillStyle = '#6fcf97'; ctx.fillRect(pad.l + 6, pad.t + 4, 16, 3);
-  ctx.fillStyle = '#8891aa'; ctx.fillText('Range (nm)', pad.l + 26, pad.t + 10);
-  ctx.fillStyle = '#4f8ef7'; ctx.fillRect(pad.l + 110, pad.t + 4, 16, 3);
-  ctx.fillStyle = '#8891aa'; ctx.fillText('L/D', pad.l + 130, pad.t + 10);
+  ctx.fillStyle = '#8891aa'; ctx.fillText('Alt (ft)', pad.l + 26, pad.t + 10);
+  ctx.fillStyle = '#4f8ef7'; ctx.fillRect(pad.l + 90, pad.t + 4, 16, 3);
+  ctx.fillStyle = '#8891aa'; ctx.fillText('KTAS', pad.l + 110, pad.t + 10);
 }
 
 // ── Sensitivity section ────────────────────────────────────────
-let sensSection = null;
-
 function sensectionHTML() {
   const sec = document.createElement('div');
   sec.id = 'sensSection';

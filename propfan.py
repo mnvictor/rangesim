@@ -204,6 +204,14 @@ class PropfanModel:
     # Display
     # ------------------------------------------------------------------
 
+    def max_feasible_speed_ms(self, speed_of_sound_ms: float) -> float:
+        """
+        Maximum cruise speed before propfan tip compressibility penalty begins.
+        tip_speed = π·V/J  →  V_max = TIP_MACH_LIMIT · J_DESIGN · sos / π
+        Independent of fan diameter.
+        """
+        return TIP_MACH_LIMIT * J_DESIGN * speed_of_sound_ms / math.pi
+
     def summary(self, cruise_speed_ms: float, speed_of_sound_ms: float) -> dict:
         rpm = self.design_rpm(cruise_speed_ms)
         tip_v = self.tip_speed_ms(rpm)

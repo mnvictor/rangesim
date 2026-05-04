@@ -66,11 +66,9 @@ def breguet_range_nm(aircraft_config) -> dict:
     eta_prop = cfg.propfan.efficiency(v, drag_n, rho, sos)
     ld = cfg.aero.ld_ratio(W_mid_n, v, rho, nu)
 
-    from engine import THERMAL_EFFICIENCY, FUEL_LHV_J_KG
     # Breguet numerator: specific air range factor
     # R = (η_prop · η_th · LHV / g) · (L/D) · ln(Wi/Wf)
-    range_factor = eta_prop * THERMAL_EFFICIENCY * FUEL_LHV_J_KG / G0_M_S2
-    range_m = range_factor * ld * math.log(W_initial_n / W_final_n)
+    range_m = cfg.engine.range_factor(eta_prop) * ld * math.log(W_initial_n / W_final_n)
 
     # Endurance: E = R / V  (approximate; constant speed assumed)
     endurance_s = range_m / v

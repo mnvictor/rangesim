@@ -14,6 +14,7 @@ from flask import Flask, render_template, request, jsonify
 from aircraft import AircraftConfig
 from simulation import breguet_range_nm, step_simulation, sensitivity_table
 from atmosphere import ms_to_ktas, G0_M_S2
+from engine import ENGINE_CONFIGS
 import math
 import traceback
 
@@ -31,6 +32,8 @@ MATERIAL_LABELS = {
     "aluminium":     "Conventional aluminium",
 }
 
+ENGINE_TYPE_LABELS = {k: v["label"] for k, v in ENGINE_CONFIGS.items()}
+
 SENSITIVITY_PARAMS = {
     "fan_diameter_m":      ("Fan diameter",       "m",    0.8,  3.0,  7),
     "wingspan_m":          ("Wingspan",            "m",    6.0, 16.0,  6),
@@ -38,7 +41,7 @@ SENSITIVITY_PARAMS = {
     "fuel_mass_kg":        ("Fuel mass",           "kg",  60.0,400.0,  7),
     "cabin_width_m":       ("Cabin width",         "m",   0.85, 1.50,  6),
     "cruise_speed_ktas":   ("Cruise speed",        "KTAS",120, 320,    7),
-    "cruise_altitude_ft":  ("Cruise altitude",     "ft", 5000,35000,   7),
+    "cruise_altitude_ft":  ("Cruise altitude",     "ft", 5000,60000,   7),
 }
 
 
@@ -54,6 +57,7 @@ def _build_config(data: dict) -> AircraftConfig:
         cruise_altitude_ft = float(data.get("cruise_altitude_ft",20000)),
         stall_speed_ktas   = float(data.get("stall_speed_ktas",   65.0)),
         structural_factor  = sf,
+        engine_type        = data.get("engine_type", "super_turboshaft"),
     )
 
 
@@ -61,7 +65,8 @@ def _build_config(data: dict) -> AircraftConfig:
 def index():
     return render_template("index.html",
                            sensitivity_params=SENSITIVITY_PARAMS,
-                           material_labels=MATERIAL_LABELS)
+                           material_labels=MATERIAL_LABELS,
+                           engine_type_labels=ENGINE_TYPE_LABELS)
 
 
 @app.route("/run", methods=["POST"])
@@ -87,6 +92,17 @@ def run():
         stepped  = step_simulation(cfg, strategy=strategy)
         breguet  = breguet_range_nm(cfg)
 
+        # Cruise fuel flow at initial MTOW
+        P_cruise_kw  = cfg.propfan.shaft_power_w(v, drag_n, rho, sos) / 1000.0
+        fuel_flow_gph = cfg.engine.fuel_flow_L_h(P_cruise_kw) / 3.78541
+
+        # Fuel in gallons, MPG, trip cost
+        range_miles   = stepped["range_nm"] * 1.15078
+        liters_burned = stepped["fuel_burned_kg"] / cfg.engine.fuel_density_kg_l
+        gal_burned    = liters_burned / 3.78541
+        range_mpg     = range_miles / gal_burned if gal_burned > 0 else 0.0
+        trip_cost_usd = gal_burned * 2.50
+
         # Cruise log for the chart (sample to ≤50 points)
         log = stepped.get("log", [])
         step = max(1, len(log) // 50)
@@ -97,6 +113,7 @@ def run():
             "warnings": warnings,
             "weights": {
                 "mtow_kg":              round(w["mtow_kg"],       1),
+                "dry_mass_kg":          round(w["dry_mass_kg"],   1),
                 "empty_weight_kg":      round(w["empty_weight_kg"],1),
                 "empty_fraction":       round(w["empty_weight_fraction"],3),
                 "payload_kg":           round(w["payload_kg"],    1),
@@ -110,6 +127,11 @@ def run():
                 "engine_install_kg":    round(w["engine_install_kg"],1),
                 "propfan_kg":           round(w["propfan_kg"],     1),
                 "fuel_system_kg":       round(w["fuel_system_kg"], 1),
+                "titanium_mass_kg":     round(w["titanium_mass_kg"], 1),
+                "aluminum_mass_kg":     round(w["aluminum_mass_kg"], 1),
+                "primary_structure_kg": round(w["primary_structure_kg"], 1),
+                "structural_factor":    w["structural_factor"],
+                "wing_sizing_driver":   w["wing_sizing_driver"],
             },
             "geometry": {
                 "wing_area_m2":    round(w["wing_area_m2"],    2),
@@ -123,16 +145,20 @@ def run():
                 "density":         round(rho, 4),
                 "density_ratio":   round(rho / 1.225, 4),
                 "mach":            round(cfg.cruise_mach, 3),
+                "sos_ktas":        round(ms_to_ktas(sos), 1),
             },
             "engine": {
+                "engine_type":     cfg.engine.engine_type,
                 "bsfc":            round(cfg.engine.sfc_kg_per_kwh(), 3),
                 "power_alt_kw":    round(cfg.engine.max_power_at_altitude_kw(rho), 1),
                 "dry_weight_kg":   round(cfg.engine.dry_weight_kg(), 1),
+                "thermal_eff_pct": round(cfg.engine.thermal_efficiency * 100, 0),
             },
             "propfan": {
                 "rpm":             round(cfg.propfan.design_rpm(v), 0),
                 "tip_mach":        round(cfg.propfan.tip_speed_ms(cfg.propfan.design_rpm(v)) / sos, 3),
                 "eta_prop":        round(eta_prop * 100, 1),
+                "max_speed_ktas":  round(ms_to_ktas(cfg.propfan.max_feasible_speed_ms(sos)), 0),
                 "disk_area_m2":    round(cfg.propfan.disk_area_m2, 2),
             },
             "aero": {
@@ -144,14 +170,17 @@ def run():
                 "best_ld_ktas":round(ms_to_ktas(aero["best_ld_speed_ms"]), 0),
             },
             "range": {
-                "breguet_nm":  round(breguet.get("range_nm",0),  0),
-                "breguet_km":  round(breguet.get("range_km",0),  0),
-                "step_nm":     round(stepped["range_nm"],         0),
-                "step_km":     round(stepped["range_km"],         0),
-                "endurance_hr":round(stepped["endurance_hr"],     1),
-                "avg_ld":      round(stepped["avg_ld"],           2),
-                "avg_eta":     round(stepped["avg_propulsive_efficiency"]*100, 1),
-                "fuel_burned_kg": round(stepped["fuel_burned_kg"], 1),
+                "breguet_nm":     round(breguet.get("range_nm",0),  0),
+                "breguet_km":     round(breguet.get("range_km",0),  0),
+                "step_nm":        round(stepped["range_nm"],         0),
+                "step_km":        round(stepped["range_km"],         0),
+                "endurance_hr":   round(stepped["endurance_hr"],     1),
+                "avg_ld":         round(stepped["avg_ld"],           2),
+                "avg_eta":        round(stepped["avg_propulsive_efficiency"]*100, 1),
+                "fuel_burned_gal": round(gal_burned,                  1),
+                "fuel_flow_gph":  round(fuel_flow_gph,               2),
+                "range_mpg":      round(range_mpg,                   1),
+                "trip_cost_usd":  round(trip_cost_usd,               0),
             },
             "chart_log": chart_log,
         })
@@ -194,6 +223,103 @@ def sensitivity():
                 for r in rows
             ],
         })
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e), "trace": traceback.format_exc()})
+
+
+@app.route("/optimize", methods=["POST"])
+def optimize():
+    """
+    Grid-search optimizer: find fan_diameter_m, wingspan_m, engine_power_kw
+    that maximise Breguet range.  Cruise altitude is fixed (taken from the
+    request).  Also fixed: fuel load, cruise speed, cabin width, stall speed,
+    material, engine type.
+    """
+    try:
+        data = request.get_json()
+
+        engine_type = data.get("engine_type", "super_turboshaft")
+        ecfg = ENGINE_CONFIGS.get(engine_type, ENGINE_CONFIGS["super_turboshaft"])
+        max_pwr = ecfg["max_power_kw"]
+        min_pwr = max(30.0, max_pwr * 0.04)
+
+        # All fixed parameters (including cruise_altitude_ft)
+        fixed = {}
+        for key in ("fuel_mass_kg", "cruise_speed_ktas", "cabin_width_m",
+                    "stall_speed_ktas", "cruise_altitude_ft",
+                    "material", "engine_type", "strategy"):
+            if key in data:
+                fixed[key] = data[key]
+
+        # ── Coarse grid (3-D: fan × wingspan × power) ───────────────
+        fan_vals = [0.8, 1.0, 1.2, 1.5, 1.8, 2.2, 2.7, 3.0]
+        ws_vals  = [6.0, 7.5, 9.0, 10.5, 12.0, 13.5, 15.0, 16.0]
+        # 7 power levels log-spaced min→max
+        pw_vals  = [round(min_pwr * (max_pwr / min_pwr) ** (i / 6.0), 1) for i in range(7)]
+
+        best_range  = -1.0
+        best_params = None
+
+        def _eval(fd, ws, pw):
+            params = dict(fixed, fan_diameter_m=fd, wingspan_m=ws, engine_power_kw=pw)
+            cfg = _build_config(params)
+            atm = cfg.atmosphere
+            rho = atm["density_kg_m3"]
+            sos = atm["speed_of_sound_m_s"]
+            nu  = atm["kinematic_viscosity_m2_s"]
+            v   = cfg.cruise_speed_ms
+            W_n = cfg.mtow_kg * G0_M_S2
+            drag_n  = cfg.aero.drag_n(W_n, v, rho, nu)
+            P_avail = cfg.engine.max_power_at_altitude_kw(rho) * 1000.0
+            T_avail = cfg.propfan.max_thrust_n(v, P_avail, rho, sos)
+            if T_avail < drag_n * 1.01:
+                return None, None   # infeasible
+            r = breguet_range_nm(cfg).get("range_nm", 0.0)
+            return r, params
+
+        for fd in fan_vals:
+            for ws in ws_vals:
+                for pw in pw_vals:
+                    try:
+                        r, p = _eval(fd, ws, pw)
+                        if r is not None and r > best_range:
+                            best_range, best_params = r, p
+                    except Exception:
+                        pass
+
+        if best_params is None:
+            return jsonify({"ok": False, "error": "No feasible configuration found in grid."})
+
+        # ── Refinement: ±25 % around best ───────────────────────────
+        fd0 = best_params["fan_diameter_m"]
+        ws0 = best_params["wingspan_m"]
+        pw0 = best_params["engine_power_kw"]
+
+        def _clamp(v, lo, hi): return max(lo, min(hi, v))
+
+        fan_vals2 = sorted({_clamp(fd0 * f, 0.8, 3.0)        for f in [0.80,0.88,0.94,1.00,1.06,1.13,1.20,1.28]})
+        ws_vals2  = sorted({_clamp(ws0 * f, 6.0, 16.0)       for f in [0.80,0.88,0.94,1.00,1.06,1.13,1.20,1.28]})
+        pw_vals2  = sorted({_clamp(pw0 * f, min_pwr, max_pwr) for f in [0.65,0.80,1.00,1.20,1.40]})
+
+        for fd in fan_vals2:
+            for ws in ws_vals2:
+                for pw in pw_vals2:
+                    try:
+                        r, p = _eval(fd, ws, pw)
+                        if r is not None and r > best_range:
+                            best_range, best_params = r, p
+                    except Exception:
+                        pass
+
+        opt = {
+            "fan_diameter_m":   round(best_params["fan_diameter_m"],  2),
+            "wingspan_m":       round(best_params["wingspan_m"],      2),
+            "engine_power_kw":  round(best_params["engine_power_kw"], 0),
+            "breguet_range_nm": round(best_range, 0),
+        }
+
+        return jsonify({"ok": True, "params": opt})
+
     except Exception as e:
         return jsonify({"ok": False, "error": str(e), "trace": traceback.format_exc()})
 
