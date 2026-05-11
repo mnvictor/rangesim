@@ -36,6 +36,7 @@ ENGINE_TYPE_LABELS = {k: v["label"] for k, v in ENGINE_CONFIGS.items()}
 
 SENSITIVITY_PARAMS = {
     "fan_diameter_m":      ("Fan diameter",       "m",    0.8,  3.0,  7),
+    "blade_sweep_deg":     ("Blade sweep",        "°",    0.0, 45.0,  7),
     "wingspan_m":          ("Wingspan",            "m",    6.0, 16.0,  6),
     "engine_power_kw":     ("Engine power",        "kW",  80.0,500.0,  7),
     "fuel_mass_kg":        ("Fuel mass",           "kg",  60.0,400.0,  7),
@@ -49,6 +50,7 @@ def _build_config(data: dict) -> AircraftConfig:
     sf = MATERIAL_FACTORS.get(data.get("material", "printed_ti_al"), 0.80)
     return AircraftConfig(
         fan_diameter_m     = float(data.get("fan_diameter_m",    1.60)),
+        blade_sweep_deg    = float(data.get("blade_sweep_deg",    0.0)),
         engine_power_kw    = float(data.get("engine_power_kw",  220.0)),
         wingspan_m         = float(data.get("wingspan_m",        10.0)),
         cabin_width_m      = float(data.get("cabin_width_m",     1.10)),
@@ -157,6 +159,8 @@ def run():
             "propfan": {
                 "rpm":             round(cfg.propfan.design_rpm(v), 0),
                 "tip_mach":        round(cfg.propfan.tip_speed_ms(cfg.propfan.design_rpm(v)) / sos, 3),
+                "eff_tip_mach":    round(cfg.propfan.effective_tip_mach(v, sos), 3),
+                "sweep_deg":       cfg.propfan.blade_sweep_deg,
                 "eta_prop":        round(eta_prop * 100, 1),
                 "max_speed_ktas":  round(ms_to_ktas(cfg.propfan.max_feasible_speed_ms(sos)), 0),
                 "disk_area_m2":    round(cfg.propfan.disk_area_m2, 2),
@@ -247,7 +251,7 @@ def optimize():
         fixed = {}
         for key in ("fuel_mass_kg", "cruise_speed_ktas", "cabin_width_m",
                     "stall_speed_ktas", "cruise_altitude_ft",
-                    "material", "engine_type", "strategy"):
+                    "material", "engine_type", "blade_sweep_deg", "strategy"):
             if key in data:
                 fixed[key] = data[key]
 
