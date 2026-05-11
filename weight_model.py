@@ -31,13 +31,13 @@ Landing-gear weight and wing sizing depend on MTOW, so we iterate:
 import math
 
 
-# ── Fixed system weights ─────────────────────────────────────────────────────
+# ── Fixed system weights ──────────────────────────────────────────────────
 AVIONICS_KG = 25.0        # IFR glass cockpit for two-seater
 ELECTRICAL_KG = 15.0      # wiring, alternator, battery
 FURNISHINGS_KG = 20.0     # seats, upholstery, belts, misc
 PITOT_STATIC_ETC_KG = 5.0
 
-# ── Occupant / payload model ─────────────────────────────────────────────────
+# ── Occupant / payload model ───────────────────────────────────────────────
 OCCUPANT_MASS_KG = 90.0          # FAA standard (pilot + passenger)
 BAGGAGE_PER_OCCUPANT_KG = 20.0   # behind seats
 
@@ -46,7 +46,7 @@ MIN_CABIN_WIDTH_M = 0.85
 # Reference cabin width for two occupants (standard two-seater):
 REF_CABIN_WIDTH_M = 1.10
 
-# ── Wing / canard parameters ─────────────────────────────────────────────────
+# ── Wing / canard parameters ───────────────────────────────────────────────
 # Canard is ~25 % of wing area; share of lifting-surface weight accordingly.
 CANARD_WING_WEIGHT_FRACTION = 0.30
 # Wing weight uses the Torenbeek formula (calibrated to GA/light aircraft) with
@@ -85,7 +85,7 @@ CL_MAX_CANARD = 1.00   # canard stalls first; main wing reference CL_max ≈ 1.0
 # Calibrated to VariEze-class: l=5.5m, d=1.0m → ~90 kg fuselage structure
 K_FUSELAGE = 14.0    # kg / (m × m^1.5)
 
-# ── Landing gear ─────────────────────────────────────────────────────────────
+# ── Landing gear ────────────────────────────────────────────────────────────
 # Base fraction of MTOW for fixed composite gear (no retraction mechanism)
 LG_BASE_FRACTION = 0.030
 # Extra mass per metre of extra gear leg length beyond the reference height
@@ -99,6 +99,12 @@ PROP_GROUND_CLEARANCE_M = 0.20   # we use 20 cm — slightly generous
 # ── Fuel system ──────────────────────────────────────────────────────────────
 # Tank structure, sealant, caps, fuel lines, pumps
 FUEL_SYSTEM_FRACTION = 0.055    # fraction of fuel mass
+
+# ── Thrust frame ────────────────────────────────────────────────────────────────
+# Composite aft-fuselage frame that carries propfan reaction loads into the
+# wing box.  Max static thrust from actuator-disk: T = (2·ρ₀·A·P²)^(1/3).
+# Scales from ~7 kg at 220 kW to ~49 kg at 3 MW (2 m fan).
+K_THRUST_FRAME_KG_N = 0.0012   # kg per N of max static thrust
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -251,7 +257,7 @@ class WeightModel:
 
         # Fixed weight items (structural ones scaled by material factor)
         w_engine = self.engine.total_powerplant_weight_kg()
-        w_propfan = self.propfan.weight_kg()
+        w_propfan = self.propfan.weight_kg(shaft_power_kw=self.engine.max_power_kw)
         w_fuse = _fuselage_weight_kg(l_fuse, self.cabin_width_m) * sf
         w_fuel_sys = self.fuel_mass_kg * FUEL_SYSTEM_FRACTION
         w_fixed = (
@@ -260,6 +266,12 @@ class WeightModel:
 
         from atmosphere import RHO0_KG_M3, ktas_to_ms
         V_stall_ms = ktas_to_ms(self.stall_speed_ktas)
+
+        # Thrust frame: aft-fuselage composite frame reacting propfan thrust.
+        # T_static from actuator-disk theory: T = (2·ρ₀·A_disk·P²)^(1/3)
+        P_w = self.engine.max_power_kw * 1000.0
+        T_static = (2.0 * RHO0_KG_M3 * self.propfan.disk_area_m2 * P_w ** 2) ** (1.0 / 3.0)
+        w_thrust_frame = K_THRUST_FRAME_KG_N * T_static
 
         # Cruise CL limit: never exceed 85 % of CL_max at cruise altitude.
         # This sizes the wing larger when flying high and slow.
@@ -288,7 +300,7 @@ class WeightModel:
 
             w_empty = (
                 w_wing + w_canard + w_fuse + w_lg +
-                w_engine + w_propfan + w_fuel_sys + w_fixed
+                w_engine + w_thrust_frame + w_propfan + w_fuel_sys + w_fixed
             )
             mtow_new = w_empty + payload_kg + self.fuel_mass_kg
 
@@ -300,7 +312,7 @@ class WeightModel:
 
         leg_length = _landing_gear_leg_length_m(self.fan_diameter_m, fuselage_bottom_h)
 
-        # ── Ti / Al mass breakdown ────────────────────────────────────
+        # ── Ti / Al mass breakdown ───────────────────────────────
         w_primary_structure = w_wing + w_canard + w_fuse + w_lg
         ti_frac, al_frac = TI_AL_SPLIT.get(self.structural_factor, (0.0, 0.0))
         ti_mass_kg = w_primary_structure * ti_frac
@@ -310,35 +322,35 @@ class WeightModel:
         dry_mass_kg = w_empty   # alias for clarity
 
         return {
-            # ── Component breakdown ──────────────────────────────────────
+            # ── Component breakdown ──────────────────────────────────────────────
             "wing_kg": w_wing,
             "canard_kg": w_canard,
             "fuselage_kg": w_fuse,
             "landing_gear_kg": w_lg,
             "engine_kg": self.engine.dry_weight_kg(),
-            "engine_install_kg": self.engine.installation_weight_kg(),
+            "engine_install_kg": self.engine.installation_weight_kg() + w_thrust_frame,
             "propfan_kg": w_propfan,
             "fuel_system_kg": w_fuel_sys,
             "avionics_electrical_kg": AVIONICS_KG + ELECTRICAL_KG,
             "furnishings_kg": FURNISHINGS_KG + PITOT_STATIC_ETC_KG,
             "empty_weight_kg": w_empty,
             "dry_mass_kg": dry_mass_kg,
-            # ── Material breakdown ───────────────────────────────────────
+            # ── Material breakdown ──────────────────────────────────────────────
             "primary_structure_kg": w_primary_structure,
             "titanium_mass_kg": ti_mass_kg,
             "aluminum_mass_kg": al_mass_kg,
-            # ── Useful load ──────────────────────────────────────────────
+            # ── Useful load ─────────────────────────────────────────────────────────────
             "payload_kg": payload_kg,
             "fuel_kg": self.fuel_mass_kg,
-            # ── Totals ───────────────────────────────────────────────────
+            # ── Totals ───────────────────────────────────────────────────────────────────
             "mtow_kg": mtow_kg,
-            # ── Geometry ─────────────────────────────────────────────────
+            # ── Geometry ─────────────────────────────────────────────────────────────────
             "wing_area_m2": S_wing,
             "aspect_ratio": AR,
             "fuselage_length_m": l_fuse,
             "fuselage_diameter_m": d_fuse,
             "landing_gear_leg_length_m": leg_length,
-            # ── Diagnostics ──────────────────────────────────────────────
+            # ── Diagnostics ─────────────────────────────────────────────────────────────
             "converged": converged,
             "empty_weight_fraction": w_empty / mtow_kg,
             "structural_factor": self.structural_factor,
