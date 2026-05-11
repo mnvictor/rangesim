@@ -137,6 +137,13 @@
       <span class="unit">m</span>
     </div>
 
+    <label>Blade sweep <span style="color:var(--sub);font-size:10px">(0°=straight · 35–40°=CFM RISE / M0.80)</span></label>
+    <div class="field">
+      <input type="range" id="blade_sweep_deg" min="0" max="45" step="5" value="0">
+      <span class="val" id="blade_sweep_deg_val">0</span>
+      <span class="unit">°</span>
+    </div>
+
     <label>Engine power (SL rated)</label>
     <div class="field">
       <input type="range" id="engine_power_kw" min="30" max="3000" step="10" value="220">
@@ -267,7 +274,7 @@ document.querySelectorAll('input[type=range]').forEach(el => {
 });
 
 function collectParams() {
-  const ids = ['fan_diameter_m','engine_power_kw','wingspan_m','cabin_width_m',
+  const ids = ['fan_diameter_m','blade_sweep_deg','engine_power_kw','wingspan_m','cabin_width_m',
                'fuel_mass_kg','cruise_speed_ktas','cruise_altitude_ft','stall_speed_ktas'];
   const p = {};
   ids.forEach(id => p[id] = parseFloat(document.getElementById(id).value));
@@ -337,6 +344,7 @@ async function optimizeSim() {
     cruise_altitude_ft: p.cruise_altitude_ft,
     material:           p.material,
     engine_type:        p.engine_type,
+    blade_sweep_deg:    p.blade_sweep_deg,
     strategy:           p.strategy,
   };
 
@@ -443,6 +451,9 @@ function renderResults(d) {
     ['Cruise Mach',   d.atmosphere.mach],
   ]));
   const etLabel = engineTypeLabels[d.engine.engine_type] || d.engine.engine_type;
+  const sweepRow = d.propfan.sweep_deg > 0
+    ? [['  Eff. tip Mach', d.propfan.eff_tip_mach, false, d.propfan.eff_tip_mach > 0.85]]
+    : [];
   c1.appendChild(card('Engine & Propfan', [
     ['Engine type',   etLabel],
     ['Thermal eff.',  d.engine.thermal_eff_pct + ' %', false, d.engine.thermal_eff_pct < 35],
@@ -450,7 +461,9 @@ function renderResults(d) {
     ['BSFC',          d.engine.bsfc + ' kg/(kW·h)'],
     ['Engine weight', d.engine.dry_weight_kg + ' kg'],
     ['Fan RPM',       d.propfan.rpm + ' rpm'],
-    ['Fan tip Mach',      d.propfan.tip_mach, false, d.propfan.tip_mach > 0.85],
+    ['Blade sweep',   d.propfan.sweep_deg + '°'],
+    ['Fan tip Mach',  d.propfan.tip_mach, false, d.propfan.eff_tip_mach > 0.85],
+    ...sweepRow,
     ['Max feasible speed', `${d.propfan.max_speed_ktas} KTAS / M${(d.propfan.max_speed_ktas/d.atmosphere.sos_ktas).toFixed(3)}`, true],
     ['Prop. efficiency', d.propfan.eta_prop + ' %', false, d.propfan.eta_prop < 80],
   ]));

@@ -39,6 +39,16 @@ class AircraftConfig:
     engine_power_kw: float = 220.0
     """Maximum shaft power at sea level (kW)."""
 
+    blade_sweep_deg: float = 0.0
+    """
+    Leading-edge sweep angle of the propfan blades (degrees).
+    0° = straight blade (conventional propfan, M ≤ ~0.65 cruise).
+    35–40° = scimitar blade (CFM RISE / GE36 style, M0.80 capable).
+    Sweep reduces effective tip Mach by cos(Λ), enabling higher cruise speeds
+    at the cost of ~0.5 % extra blade mass per degree and a small 3-D profile
+    efficiency penalty.
+    """
+
     # ── Airframe geometry ─────────────────────────────────────────────────────
     wingspan_m: float = 10.0
     """Wing tip-to-tip span (m)."""
@@ -109,7 +119,7 @@ class AircraftConfig:
 
         # 2. Sub-models
         self._engine = EngineModel(max_power_kw=self.engine_power_kw, engine_type=self.engine_type)
-        self._propfan = PropfanModel(diameter_m=self.fan_diameter_m)
+        self._propfan = PropfanModel(diameter_m=self.fan_diameter_m, blade_sweep_deg=self.blade_sweep_deg)
 
         # 3. Cruise speed in m/s
         v_ms = ktas_to_ms(self.cruise_speed_ktas)
@@ -256,14 +266,15 @@ class AircraftConfig:
         if wing_loading > 1500:
             warnings.append(f"High wing loading: {wing_loading:.0f} N/m².")
 
-        # Propfan tip Mach
-        rpm = self.propfan.design_rpm(v)
-        tip_v = self.propfan.tip_speed_ms(rpm)
-        tip_mach = tip_v / sos
-        if tip_mach > 0.95:
+        # Propfan tip Mach — warn on effective (sweep-corrected) value
+        eff_tip_mach = self.propfan.effective_tip_mach(v, sos)
+        if eff_tip_mach > 0.95:
+            sweep_note = (f" (raw={self.propfan.tip_speed_ms(self.propfan.design_rpm(v))/sos:.2f},"
+                          f" eff={eff_tip_mach:.2f} after {self.blade_sweep_deg:.0f}° sweep)"
+                          if self.blade_sweep_deg > 0 else "")
             warnings.append(
-                f"Propfan tip Mach {tip_mach:.2f} is very high — consider "
-                f"larger diameter or lower RPM."
+                f"Effective propfan tip Mach {eff_tip_mach:.2f} is very high — "
+                f"consider more sweep, larger diameter, or lower RPM.{sweep_note}"
             )
 
         # Fuel fraction
