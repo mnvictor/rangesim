@@ -146,7 +146,7 @@
 
     <label>Engine power (SL rated)</label>
     <div class="field">
-      <input type="range" id="engine_power_kw" min="30" max="3000" step="10" value="220">
+      <input type="range" id="engine_power_kw" min="30" max="5000" step="10" value="220">
       <span class="val" id="engine_power_kw_val">220 kW</span>
     </div>
 
@@ -170,7 +170,7 @@
 
     <label>Fuel loaded</label>
     <div class="field">
-      <input type="range" id="fuel_mass_kg" min="40" max="400" step="5" value="160">
+      <input type="range" id="fuel_mass_kg" min="40" max="1000" step="5" value="160">
       <span class="val" id="fuel_mass_kg_val">160</span>
       <span class="unit">kg</span>
     </div>
@@ -179,7 +179,7 @@
 
     <label>Cruise speed <span id="maxSpeedHint" style="color:var(--accent2);font-size:11px;margin-left:6px"></span></label>
     <div class="field">
-      <input type="range" id="cruise_speed_ktas" min="100" max="500" step="5" value="210">
+      <input type="range" id="cruise_speed_ktas" min="100" max="600" step="5" value="210">
       <span class="val" id="cruise_speed_ktas_val">210 / M0.342</span>
       <span class="unit">KTAS</span>
       <button onclick="setMaxSpeed()" title="Set to propfan tip-Mach limit" style="background:var(--accent2);color:#000;border:none;border-radius:4px;padding:2px 7px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">MAX</button>
@@ -229,7 +229,7 @@
 <script>
 // ── Engine type config (mirrors engine.py ENGINE_CONFIGS) ──────
 const ENGINE_MAX_KW = {
-  super_turboshaft: 3000,
+  super_turboshaft: 5000,
   turboshaft:       447.4,   // 600 HP
   piston:           260.99,  // 350 HP
 };
@@ -285,7 +285,7 @@ function collectParams() {
 }
 
 // ── Max speed / Mach helpers ───────────────────────────────────
-let _maxSpeedKtas = 400;
+let _maxSpeedKtas = 500;
 
 function setMaxSpeed() {
   const sl = document.getElementById('cruise_speed_ktas');

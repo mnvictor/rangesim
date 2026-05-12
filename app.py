@@ -38,10 +38,10 @@ SENSITIVITY_PARAMS = {
     "fan_diameter_m":      ("Fan diameter",       "m",    0.8,  3.0,  7),
     "blade_sweep_deg":     ("Blade sweep",        "°",    0.0, 45.0,  7),
     "wingspan_m":          ("Wingspan",            "m",    6.0, 16.0,  6),
-    "engine_power_kw":     ("Engine power",        "kW",  80.0,500.0,  7),
-    "fuel_mass_kg":        ("Fuel mass",           "kg",  60.0,400.0,  7),
+    "engine_power_kw":     ("Engine power",        "kW",  80.0,5000.0, 7),
+    "fuel_mass_kg":        ("Fuel mass",           "kg",  60.0,1000.0, 7),
     "cabin_width_m":       ("Cabin width",         "m",   0.85, 1.50,  6),
-    "cruise_speed_ktas":   ("Cruise speed",        "KTAS",120, 320,    7),
+    "cruise_speed_ktas":   ("Cruise speed",        "KTAS",120, 600,    7),
     "cruise_altitude_ft":  ("Cruise altitude",     "ft", 5000,60000,   7),
 }
 
