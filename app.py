@@ -48,12 +48,14 @@ SENSITIVITY_PARAMS = {
 
 def _build_config(data: dict) -> AircraftConfig:
     sf = MATERIAL_FACTORS.get(data.get("material", "printed_ti_al"), 0.80)
+    num_occupants = max(1, min(10, int(float(data.get("num_occupants", 2)))))
     return AircraftConfig(
         fan_diameter_m     = float(data.get("fan_diameter_m",    1.60)),
         blade_sweep_deg    = float(data.get("blade_sweep_deg",    0.0)),
         engine_power_kw    = float(data.get("engine_power_kw",  220.0)),
         wingspan_m         = float(data.get("wingspan_m",        10.0)),
         cabin_width_m      = float(data.get("cabin_width_m",     1.10)),
+        num_occupants      = num_occupants,
         fuel_mass_kg       = float(data.get("fuel_mass_kg",     160.0)),
         cruise_speed_ktas  = float(data.get("cruise_speed_ktas",210.0)),
         cruise_altitude_ft = float(data.get("cruise_altitude_ft",20000)),
@@ -251,11 +253,12 @@ def optimize():
         fixed = {}
         for key in ("fuel_mass_kg", "cruise_speed_ktas", "cabin_width_m",
                     "stall_speed_ktas", "cruise_altitude_ft",
-                    "material", "engine_type", "blade_sweep_deg", "strategy"):
+                    "material", "engine_type", "blade_sweep_deg", "strategy",
+                    "num_occupants"):
             if key in data:
                 fixed[key] = data[key]
 
-        # ── Coarse grid (3-D: fan × wingspan × power) ───────────────
+        # ── Coarse grid (3-D: fan × wingspan × power) ─────────────────
         fan_vals = [0.8, 1.0, 1.2, 1.5, 1.8, 2.2, 2.7, 3.0]
         ws_vals  = [6.0, 7.5, 9.0, 10.5, 12.0, 13.5, 15.0, 16.0]
         # 7 power levels log-spaced min→max
@@ -294,7 +297,7 @@ def optimize():
         if best_params is None:
             return jsonify({"ok": False, "error": "No feasible configuration found in grid."})
 
-        # ── Refinement: ±25 % around best ───────────────────────────
+        # ── Refinement: ±25 % around best ────────────────────────
         fd0 = best_params["fan_diameter_m"]
         ws0 = best_params["wingspan_m"]
         pw0 = best_params["engine_power_kw"]
