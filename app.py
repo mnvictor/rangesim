@@ -38,22 +38,28 @@ SENSITIVITY_PARAMS = {
     "fan_diameter_m":      ("Fan diameter",       "m",    0.8,  3.0,  7),
     "blade_sweep_deg":     ("Blade sweep",        "°",    0.0, 45.0,  7),
     "wingspan_m":          ("Wingspan",            "m",    6.0, 16.0,  6),
-    "engine_power_kw":     ("Engine power",        "kW",  80.0,500.0,  7),
-    "fuel_mass_kg":        ("Fuel mass",           "kg",  60.0,400.0,  7),
+    "engine_power_kw":     ("Engine power",        "kW",  80.0,10000.0, 7),
+    "fuel_mass_kg":        ("Fuel mass",           "kg",  60.0, 2000.0, 7),
     "cabin_width_m":       ("Cabin width",         "m",   0.85, 1.50,  6),
-    "cruise_speed_ktas":   ("Cruise speed",        "KTAS",120, 320,    7),
+    "cruise_speed_ktas":   ("Cruise speed",        "KTAS",120, 600,    7),
     "cruise_altitude_ft":  ("Cruise altitude",     "ft", 5000,60000,   7),
 }
 
 
 def _build_config(data: dict) -> AircraftConfig:
     sf = MATERIAL_FACTORS.get(data.get("material", "printed_ti_al"), 0.80)
+    num_occupants = max(1, min(10, int(float(data.get("num_occupants", 2)))))
+    num_engines   = max(1, min(2,  int(float(data.get("num_engines",   1)))))
+    extra_cargo   = max(0.0, float(data.get("extra_cargo_kg", 0.0)))
     return AircraftConfig(
         fan_diameter_m     = float(data.get("fan_diameter_m",    1.60)),
         blade_sweep_deg    = float(data.get("blade_sweep_deg",    0.0)),
         engine_power_kw    = float(data.get("engine_power_kw",  220.0)),
         wingspan_m         = float(data.get("wingspan_m",        10.0)),
         cabin_width_m      = float(data.get("cabin_width_m",     1.10)),
+        num_occupants      = num_occupants,
+        extra_cargo_kg     = extra_cargo,
+        num_engines        = num_engines,
         fuel_mass_kg       = float(data.get("fuel_mass_kg",     160.0)),
         cruise_speed_ktas  = float(data.get("cruise_speed_ktas",210.0)),
         cruise_altitude_ft = float(data.get("cruise_altitude_ft",20000)),
@@ -134,6 +140,7 @@ def run():
                 "primary_structure_kg": round(w["primary_structure_kg"], 1),
                 "structural_factor":    w["structural_factor"],
                 "wing_sizing_driver":   w["wing_sizing_driver"],
+                "num_engines":          cfg.num_engines,
             },
             "geometry": {
                 "wing_area_m2":    round(w["wing_area_m2"],    2),
@@ -251,11 +258,12 @@ def optimize():
         fixed = {}
         for key in ("fuel_mass_kg", "cruise_speed_ktas", "cabin_width_m",
                     "stall_speed_ktas", "cruise_altitude_ft",
-                    "material", "engine_type", "blade_sweep_deg", "strategy"):
+                    "material", "engine_type", "blade_sweep_deg", "strategy",
+                    "num_occupants", "extra_cargo_kg", "num_engines"):
             if key in data:
                 fixed[key] = data[key]
 
-        # ── Coarse grid (3-D: fan × wingspan × power) ───────────────
+        # ── Coarse grid (3-D: fan × wingspan × power) ──────────────────────
         fan_vals = [0.8, 1.0, 1.2, 1.5, 1.8, 2.2, 2.7, 3.0]
         ws_vals  = [6.0, 7.5, 9.0, 10.5, 12.0, 13.5, 15.0, 16.0]
         # 7 power levels log-spaced min→max
@@ -294,7 +302,7 @@ def optimize():
         if best_params is None:
             return jsonify({"ok": False, "error": "No feasible configuration found in grid."})
 
-        # ── Refinement: ±25 % around best ───────────────────────────
+        # ── Refinement: ±25 % around best ──────────────────────────────
         fd0 = best_params["fan_diameter_m"]
         ws0 = best_params["wingspan_m"]
         pw0 = best_params["engine_power_kw"]
