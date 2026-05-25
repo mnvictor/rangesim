@@ -37,7 +37,7 @@ ENGINE_CONFIGS: dict = {
         "power_to_weight_kw_kg": 11.0,
         "fuel_lhv_j_kg":         43.2e6,
         "fuel_density_kg_l":     0.800,
-        "max_power_kw":          5000.0,
+        "max_power_kw":          10000.0,
     },
     "turboshaft": {
         "label":                 "Conventional turboshaft (~38% eff.)",
