@@ -32,7 +32,7 @@ class AircraftConfig:
     All others are computed by `.reconfigure()`.
     """
 
-    # ── Propulsion ────────────────────────────────────────────────────────────
+    # ── Propulsion ────────────────────────────────────────────────────────────────────
     fan_diameter_m: float = 1.60
     """Tip-to-tip diameter of each counter-rotating fan stage (m)."""
 
@@ -49,39 +49,48 @@ class AircraftConfig:
     efficiency penalty.
     """
 
-    # ── Airframe geometry ─────────────────────────────────────────────────────
+    # ── Airframe geometry ─────────────────────────────────────────────────────────────────
     wingspan_m: float = 10.0
     """Wing tip-to-tip span (m)."""
 
     cabin_width_m: float = 1.11
     """Interior cabin width at shoulder level (m)."""
 
-    # ── Mission / loading ─────────────────────────────────────────────────────
+    num_occupants: int = 2
+    """Number of occupants including pilot (2–10)."""
+
+    extra_cargo_kg: float = 0.0
+    """Extra cargo/payload beyond passenger weight (kg)."""
+
+    num_engines: int = 1
+    """Number of engines (1 or 2). Power slider is per-engine; total = power × num_engines."""
+
+    # ── Mission / loading ────────────────────────────────────────────────────────────────
     fuel_mass_kg: float = 160.0
     """Usable fuel loaded (kg)."""
 
-    # ── Cruise conditions ─────────────────────────────────────────────────────
+    # ── Cruise conditions ────────────────────────────────────────────────────────────────
     cruise_speed_ktas: float = 210.0
     """True airspeed at cruise (knots)."""
 
     cruise_altitude_ft: float = 20_000.0
     """Cruise pressure altitude (feet)."""
 
-    # ── Handling / stall ──────────────────────────────────────────────────────
+    # ── Handling / stall ───────────────────────────────────────────────────────────────
     stall_speed_ktas: float = 65.0
     """
     Target clean stall speed at sea level, MTOW (knots).
     Drives wing area sizing.  Canard stall (CL_max ≈ 1.0) is the constraint.
     """
 
-    # ── Engine type ───────────────────────────────────────────────────────────
+    # ── Engine type ───────────────────────────────────────────────────────────────────
     engine_type: str = "super_turboshaft"
     """
     One of "super_turboshaft" | "turboshaft" | "piston".
     Controls thermal efficiency, power-to-weight, and fuel properties.
     """
 
-    # ── Construction material ─────────────────────────────────────────────────
+    # ── Construction material ─────────────────────────────────────────────────────────────
     structural_factor: float = 0.80
     """
     Structural weight factor relative to the Torenbeek conventional-aluminium
@@ -92,7 +101,7 @@ class AircraftConfig:
     Default is 3D-printed titanium / graded aluminium.
     """
 
-    # ── Computed / derived fields (populated by reconfigure) ──────────────────
+    # ── Computed / derived fields (populated by reconfigure) ────────────────────
     # (Not user inputs — do not set these manually)
     _atmosphere: dict = field(default_factory=dict, init=False, repr=False)
     _engine: EngineModel = field(default=None, init=False, repr=False)
@@ -103,9 +112,9 @@ class AircraftConfig:
     def __post_init__(self):
         self.reconfigure()
 
-    # ──────────────────────────────────────────────────────────────────────────
+    # ──────────────────────────────────────────────────────────────────────────────
     # Public API
-    # ──────────────────────────────────────────────────────────────────────────
+    # ──────────────────────────────────────────────────────────────────────────────
 
     def reconfigure(self) -> None:
         """Recompute all derived quantities from user parameters."""
@@ -117,8 +126,11 @@ class AircraftConfig:
         sos = self._atmosphere["speed_of_sound_m_s"]
         nu = self._atmosphere["kinematic_viscosity_m2_s"]
 
-        # 2. Sub-models
-        self._engine = EngineModel(max_power_kw=self.engine_power_kw, engine_type=self.engine_type)
+        # 2. Sub-models — total shaft power = per-engine × num_engines
+        self._engine = EngineModel(
+            max_power_kw=self.engine_power_kw * self.num_engines,
+            engine_type=self.engine_type,
+        )
         self._propfan = PropfanModel(diameter_m=self.fan_diameter_m, blade_sweep_deg=self.blade_sweep_deg)
 
         # 3. Cruise speed in m/s
@@ -134,6 +146,8 @@ class AircraftConfig:
             fuel_mass_kg=self.fuel_mass_kg,
             engine_model=self._engine,
             propfan_model=self._propfan,
+            num_occupants=self.num_occupants,
+            extra_cargo_kg=self.extra_cargo_kg,
             structural_factor=self.structural_factor,
         )
         self._weights = wm.compute(density_kg_m3=rho)
@@ -147,9 +161,9 @@ class AircraftConfig:
             fuselage_diameter_m=self._weights["fuselage_diameter_m"],
         )
 
-    # ──────────────────────────────────────────────────────────────────────────
+    # ──────────────────────────────────────────────────────────────────────────────
     # Convenience accessors
-    # ──────────────────────────────────────────────────────────────────────────
+    # ──────────────────────────────────────────────────────────────────────────────
 
     @property
     def cruise_altitude_m(self) -> float:
@@ -203,9 +217,9 @@ class AircraftConfig:
     def aero(self) -> AeroModel:
         return self._aero
 
-    # ──────────────────────────────────────────────────────────────────────────
+    # ──────────────────────────────────────────────────────────────────────────────
     # Validation helpers
-    # ──────────────────────────────────────────────────────────────────────────
+    # ──────────────────────────────────────────────────────────────────────────────
 
     def validate(self) -> list[str]:
         """
@@ -216,6 +230,12 @@ class AircraftConfig:
         from atmosphere import ktas_to_ms
 
         warnings = []
+
+        if self.num_occupants < 1 or self.num_occupants > 10:
+            warnings.append(
+                f"num_occupants {self.num_occupants} is outside the supported range 1–10."
+            )
+
         atm = self._atmosphere
         v = self.cruise_speed_ms
         rho = atm["density_kg_m3"]
@@ -290,9 +310,9 @@ class AircraftConfig:
 
         return warnings
 
-    # ──────────────────────────────────────────────────────────────────────────
+    # ──────────────────────────────────────────────────────────────────────────────
     # Display helper
-    # ──────────────────────────────────────────────────────────────────────────
+    # ──────────────────────────────────────────────────────────────────────────────
 
     def full_summary(self) -> dict:
         """Merged summary of all sub-models for reporting."""
