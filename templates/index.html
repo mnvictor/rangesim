@@ -27,7 +27,7 @@
 
   .layout { display: grid; grid-template-columns: 270px 1fr; height: calc(100vh - 42px); overflow: hidden; }
 
-  /* ── Left panel ────────────────────────────────────────────────────────────────── */
+  /* ── Left panel ────────────────────────────────────────────── */
   .sidebar { background: var(--panel); border-right: 1px solid var(--border); overflow-y: auto; padding: 12px 12px 16px; display: flex; flex-direction: column; gap: 2px; }
 
   .section-title { font-size: 10px; font-weight: 700; color: var(--accent); letter-spacing: 1px; text-transform: uppercase; margin: 10px 0 6px; }
@@ -50,7 +50,7 @@
   .run-btn:hover, .opt-btn:hover { opacity: .88; }
   .run-btn:disabled, .opt-btn:disabled { opacity: .45; cursor: default; }
 
-  /* ── Right panel ────────────────────────────────────────────────────────────────── */
+  /* ── Right panel ────────────────────────────────────────────── */
   .main { overflow-y: auto; padding: 12px 16px 20px; display: flex; flex-direction: column; gap: 12px; }
 
   .warnings { background: #1f1608; border: 1px solid var(--warn); border-radius: var(--radius); padding: 8px 10px; }
@@ -83,7 +83,7 @@
   /* Chart */
   .chart-wrap { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; }
   .chart-wrap h3 { font-size: 10px; font-weight: 700; color: var(--accent); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
-  canvas { width: 100%; height: 140px; display: block; }
+  canvas { width: 100%; height: 150px; display: block; }
 
   /* Sensitivity */
   .sens-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
@@ -118,7 +118,7 @@
 
 <div class="layout">
 
-  <!-- ── Sidebar ──────────────────────────────────────────────────────────────────── -->
+  <!-- ── Sidebar ─────────────────────────────────────────────── -->
   <aside class="sidebar">
 
     <div class="section-title">Propulsion</div>
@@ -144,15 +144,9 @@
       <span class="unit">°</span>
     </div>
 
-    <label>Engines</label>
-    <select id="num_engines">
-      <option value="1">1 engine</option>
-      <option value="2">2 engines (total power = 2× slider)</option>
-    </select>
-
-    <label>Engine power per engine (SL rated)</label>
+    <label>Engine power (SL rated)</label>
     <div class="field">
-      <input type="range" id="engine_power_kw" min="30" max="10000" step="10" value="220">
+      <input type="range" id="engine_power_kw" min="30" max="5000" step="10" value="220">
       <span class="val" id="engine_power_kw_val">220 kW</span>
     </div>
 
@@ -183,15 +177,8 @@
 
     <label>Fuel loaded</label>
     <div class="field">
-      <input type="range" id="fuel_mass_kg" min="40" max="2000" step="10" value="160">
+      <input type="range" id="fuel_mass_kg" min="40" max="1000" step="5" value="160">
       <span class="val" id="fuel_mass_kg_val">160</span>
-      <span class="unit">kg</span>
-    </div>
-
-    <label>Extra cargo</label>
-    <div class="field">
-      <input type="range" id="extra_cargo_kg" min="0" max="2000" step="10" value="0">
-      <span class="val" id="extra_cargo_kg_val">0</span>
       <span class="unit">kg</span>
     </div>
 
@@ -240,16 +227,16 @@
     </div>
   </aside>
 
-  <!-- ── Main ───────────────────────────────────────────────────────────────────────── -->
+  <!-- ── Main ─────────────────────────────────────────────── -->
   <main class="main" id="mainPanel">
     <p class="placeholder" id="placeholder">Adjust parameters and click <strong>Run</strong>.</p>
   </main>
 </div>
 
 <script>
-// ── Engine type config (mirrors engine.py ENGINE_CONFIGS) ──────────────
+// ── Engine type config (mirrors engine.py ENGINE_CONFIGS) ────────────────────
 const ENGINE_MAX_KW = {
-  super_turboshaft: 10000,
+  super_turboshaft: 5000,
   turboshaft:       447.4,   // 600 HP
   piston:           260.99,  // 350 HP
 };
@@ -267,19 +254,12 @@ function onEngineTypeChange() {
 
 function updatePowerDisplay(kw) {
   const et = document.getElementById('engine_type').value;
-  const ne = parseInt(document.getElementById('num_engines').value);
   const hp = Math.round(kw / 0.7457);
-  const total = kw * ne;
-  const perLabel = et === 'super_turboshaft' ? `${kw} kW` : `${kw} kW / ${hp} HP`;
-  const txt = ne > 1 ? `${perLabel} (${total} kW total)` : perLabel;
+  const txt = et === 'super_turboshaft' ? `${kw} kW` : `${kw} kW / ${hp} HP`;
   document.getElementById('engine_power_kw_val').textContent = txt;
 }
 
-document.getElementById('num_engines').addEventListener('change', () => {
-  updatePowerDisplay(parseFloat(document.getElementById('engine_power_kw').value));
-});
-
-// ── Slider live display ────────────────────────────────────────────────────────────
+// ── Slider live display ──────────────────────────────────────────────
 let _sosKtas = 614;   // speed of sound in KTAS — updated after each run
 
 document.querySelectorAll('input[type=range]').forEach(el => {
@@ -302,18 +282,17 @@ document.querySelectorAll('input[type=range]').forEach(el => {
 
 function collectParams() {
   const ids = ['fan_diameter_m','blade_sweep_deg','engine_power_kw','wingspan_m','cabin_width_m',
-               'fuel_mass_kg','extra_cargo_kg','cruise_speed_ktas','cruise_altitude_ft','stall_speed_ktas'];
+               'fuel_mass_kg','cruise_speed_ktas','cruise_altitude_ft','stall_speed_ktas'];
   const p = {};
   ids.forEach(id => p[id] = parseFloat(document.getElementById(id).value));
   p.num_occupants = parseInt(document.getElementById('num_occupants').value);
-  p.num_engines   = parseInt(document.getElementById('num_engines').value);
   p.material    = document.getElementById('material').value;
   p.strategy    = document.getElementById('strategy').value;
   p.engine_type = document.getElementById('engine_type').value;
   return p;
 }
 
-// ── Max speed / Mach helpers ───────────────────────────────────────────────────────────
+// ── Max speed / Mach helpers ─────────────────────────────────────────────────
 let _maxSpeedKtas = 500;
 
 function setMaxSpeed() {
@@ -324,7 +303,7 @@ function setMaxSpeed() {
     `${v} / M${(v / _sosKtas).toFixed(3)}`;
 }
 
-// ── Run simulation ───────────────────────────────────────────────────────────────────
+// ── Run simulation ─────────────────────────────────────────────────────
 async function runSim() {
   const btn = document.getElementById('runBtn');
   btn.disabled = true;
@@ -357,7 +336,7 @@ async function runSim() {
   renderResults(res);
 }
 
-// ── Optimize ─────────────────────────────────────────────────────────────────────────
+// ── Optimize ────────────────────────────────────────────────────
 async function optimizeSim() {
   const btn = document.getElementById('optBtn');
   btn.disabled = true;
@@ -367,11 +346,9 @@ async function optimizeSim() {
   const p = collectParams();
   const payload = {
     fuel_mass_kg:       p.fuel_mass_kg,
-    extra_cargo_kg:     p.extra_cargo_kg,
     cruise_speed_ktas:  p.cruise_speed_ktas,
     cabin_width_m:      p.cabin_width_m,
     num_occupants:      p.num_occupants,
-    num_engines:        p.num_engines,
     stall_speed_ktas:   p.stall_speed_ktas,
     cruise_altitude_ft: p.cruise_altitude_ft,
     material:           p.material,
@@ -420,7 +397,7 @@ async function optimizeSim() {
   await runSim();
 }
 
-// ── Render results ───────────────────────────────────────────────────────────────────
+// ── Render results ───────────────────────────────────────────────────────
 function renderResults(d) {
   document.getElementById('placeholder')?.remove();
   const panel = document.getElementById('mainPanel');
@@ -430,7 +407,7 @@ function renderResults(d) {
   if (d.warnings && d.warnings.length) {
     const wdiv = document.createElement('div');
     wdiv.className = 'warnings';
-    wdiv.innerHTML = d.warnings.map(w => `<p>&#9888; ${w}</p>`).join('');
+    wdiv.innerHTML = d.warnings.map(w => `<p>⚠ ${w}</p>`).join('');
     panel.appendChild(wdiv);
   }
 
@@ -469,7 +446,7 @@ function renderResults(d) {
     ['  LG leg length',d.weights.landing_gear_leg_m + ' m'],
     ...matRows,
     ['── Propulsion', ''],
-    [`  Engine × ${d.weights.num_engines} + inst.`,(d.weights.engine_kg + d.weights.engine_install_kg).toFixed(1) + ' kg'],
+    ['  Engine + inst.',(d.weights.engine_kg + d.weights.engine_install_kg).toFixed(1) + ' kg'],
     ['  Propfan assy.', d.weights.propfan_kg + ' kg'],
   ]));
   c1.appendChild(card('Geometry & Atmosphere', [
@@ -529,26 +506,31 @@ function heroHTML(d) {
   el.className = 'range-hero';
   el.innerHTML = `
     <div class="metric">
-      <div class="big">${Math.round(d.range.step_nm).toLocaleString()}</div>
+      <div class="big">${Math.round(d.range.mission_nm).toLocaleString()}</div>
       <div class="unit">nautical miles</div>
-      <div class="label">Max range (step sim)</div>
+      <div class="label">Range w/ ${d.range.reserve_min}-min reserve</div>
     </div>
     <div class="divider"></div>
     <div class="sub-metrics">
       <div class="row">
-        <div class="sm"><span class="sv">${Math.round(d.range.step_km).toLocaleString()}</span><span class="sl">km</span></div>
-        <div class="sm"><span class="sv">${d.range.endurance_hr}</span><span class="sl">hr endurance</span></div>
-        <div class="sm"><span class="sv">${Math.round(d.range.breguet_nm).toLocaleString()}</span><span class="sl">nm (Breguet)</span></div>
+        <div class="sm"><span class="sv">${Math.round(d.range.mission_km).toLocaleString()}</span><span class="sl">km</span></div>
+        <div class="sm"><span class="sv">${d.range.endurance_hr}</span><span class="sl">hr total</span></div>
+        <div class="sm"><span class="sv">${Math.round(d.range.max_nm).toLocaleString()}</span><span class="sl">nm max (no reserve)</span></div>
       </div>
       <div class="row">
-        <div class="sm"><span class="sv">${d.range.avg_ld}</span><span class="sl">avg L/D</span></div>
+        <div class="sm"><span class="sv">${d.range.avg_ld}</span><span class="sl">avg L/D cruise</span></div>
         <div class="sm"><span class="sv">${d.range.avg_eta}%</span><span class="sl">prop. η</span></div>
-        <div class="sm"><span class="sv">${d.range.fuel_burned_gal} gal</span><span class="sl">fuel burned</span></div>
+        <div class="sm"><span class="sv">${d.range.fuel_burned_gal} gal</span><span class="sl">fuel used</span></div>
       </div>
       <div class="row">
-        <div class="sm"><span class="sv">${d.range.fuel_flow_gph}</span><span class="sl">gal/hr start</span></div>
+        <div class="sm"><span class="sv">${d.range.fuel_flow_gph}</span><span class="sl">gal/hr cruise</span></div>
         <div class="sm"><span class="sv">${d.range.range_mpg}</span><span class="sl">mi/gal (US)</span></div>
         <div class="sm"><span class="sv">$${d.range.trip_cost_usd.toLocaleString()}</span><span class="sl">trip cost ($2.50/gal)</span></div>
+      </div>
+      <div class="row">
+        <div class="sm"><span class="sv">${d.range.takeoff_fuel_kg + d.range.climb_fuel_kg} kg</span><span class="sl">T/O + climb fuel</span></div>
+        <div class="sm"><span class="sv">${d.range.cruise_fuel_kg} kg</span><span class="sl">cruise fuel</span></div>
+        <div class="sm"><span class="sv">${d.range.reserve_kg} kg</span><span class="sl">${d.range.reserve_min}-min reserve</span></div>
       </div>
     </div>`;
   return el;
@@ -564,44 +546,42 @@ function card(title, rows) {
   return c;
 }
 
-// ── Flight profile chart (altitude & airspeed vs time) ────────────────────
+// ── Flight profile chart (altitude & airspeed vs time) ──────────────────
 function chartHTML(log) {
   const wrap = document.createElement('div');
   wrap.className = 'chart-wrap';
-  wrap.innerHTML = '<h3>Flight Profile — Altitude &amp; Airspeed over Time</h3><canvas id="cruiseChart"></canvas>';
+  wrap.innerHTML = '<h3>Mission Profile — Takeoff · Climb · Cruise · Descent</h3><canvas id="cruiseChart"></canvas>';
 
   requestAnimationFrame(() => {
     const canvas = document.getElementById('cruiseChart');
     if (!canvas) return;
     const dpr = window.devicePixelRatio || 1;
     canvas.width  = canvas.offsetWidth  * dpr;
-    canvas.height = 140 * dpr;
+    canvas.height = 150 * dpr;
     const ctx = canvas.getContext('2d');
     ctx.scale(dpr, dpr);
-    drawChart(ctx, canvas.offsetWidth, 140, log);
+    drawChart(ctx, canvas.offsetWidth, 150, log);
   });
   return wrap;
 }
 
 function drawChart(ctx, W, H, log) {
-  const pad = {t:10, r:52, b:28, l:52};
+  const pad = {t:18, r:52, b:28, l:52};
   const pw = W - pad.l - pad.r;
   const ph = H - pad.t - pad.b;
 
   const times  = log.map(r => r.time_min);
   const alts   = log.map(r => r.altitude_ft);
   const speeds = log.map(r => r.v_ktas);
-
   const tMax = Math.max(...times);
 
-  // Scale with padding; guard against flat lines (constant altitude/speed)
   function axisRange(vals) {
     const lo = Math.min(...vals), hi = Math.max(...vals);
     const span = Math.max(hi - lo, Math.max(hi * 0.02, 200));
     return [lo - span * 0.05, hi + span * 0.10];
   }
-  const [altLo, altHi]   = axisRange(alts);
-  const [spdLo, spdHi]   = axisRange(speeds);
+  const [altLo, altHi] = axisRange(alts);
+  const [spdLo, spdHi] = axisRange(speeds);
 
   const tx = t   => pad.l + (t / tMax) * pw;
   const ay = alt => pad.t + ph - ((alt - altLo) / (altHi - altLo)) * ph;
@@ -616,6 +596,26 @@ function drawChart(ctx, W, H, log) {
     const y = pad.t + (ph / 4) * i;
     ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l + pw, y); ctx.stroke();
   }
+
+  // Phase boundary lines — find first entry of each new phase
+  const phaseColors = { climb:'#f2994a', cruise:'#8891aa', descent:'#f2994a', landing:'#8891aa' };
+  const phaseLabels = { climb:'Climb', cruise:'Cruise', descent:'Descent' };
+  let lastPhase = '';
+  log.forEach(r => {
+    if (r.phase !== lastPhase && r.phase in phaseLabels && lastPhase !== '') {
+      const x = tx(r.time_min);
+      ctx.strokeStyle = '#2e3347';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, pad.t + ph); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#f2994a';
+      ctx.font = '9px system-ui';
+      ctx.textAlign = 'center';
+      ctx.fillText(phaseLabels[r.phase], x, pad.t - 4);
+    }
+    lastPhase = r.phase;
+  });
 
   // Altitude line — teal
   ctx.strokeStyle = '#6fcf97';
@@ -637,20 +637,17 @@ function drawChart(ctx, W, H, log) {
   ctx.fillStyle = '#8891aa';
   ctx.font = '10px system-ui';
 
-  // Left axis — altitude (ft), shown as "20k" etc.
   const fmtFt = v => v >= 1000 ? Math.round(v/1000) + 'k' : Math.round(v).toString();
   ctx.textAlign = 'right';
   ctx.fillText(fmtFt(altLo + (altHi-altLo)*0.0), pad.l - 4, pad.t + ph);
   ctx.fillText(fmtFt(altLo + (altHi-altLo)*0.5), pad.l - 4, pad.t + ph/2);
   ctx.fillText(fmtFt(altHi),                       pad.l - 4, pad.t + 6);
 
-  // Right axis — airspeed (KTAS)
   ctx.textAlign = 'left';
   ctx.fillText(Math.round(spdLo + (spdHi-spdLo)*0.0) + 'kt', pad.l + pw + 4, pad.t + ph);
   ctx.fillText(Math.round(spdLo + (spdHi-spdLo)*0.5) + 'kt', pad.l + pw + 4, pad.t + ph/2);
   ctx.fillText(Math.round(spdHi) + 'kt',                       pad.l + pw + 4, pad.t + 6);
 
-  // X-axis time labels
   ctx.textAlign = 'center';
   [0, 0.25, 0.5, 0.75, 1].forEach(f => {
     ctx.fillText(Math.round(tMax * f) + 'm', pad.l + pw * f, H - 6);
@@ -664,7 +661,7 @@ function drawChart(ctx, W, H, log) {
   ctx.fillStyle = '#8891aa'; ctx.fillText('KTAS', pad.l + 110, pad.t + 10);
 }
 
-// ── Sensitivity section ────────────────────────────────────────────────────────────────
+// ── Sensitivity section ────────────────────────────────────────────────────
 function sensectionHTML() {
   const sec = document.createElement('div');
   sec.id = 'sensSection';
@@ -719,7 +716,7 @@ async function runSens() {
           <td>${r.value}</td>
           <td>${r.mtow}</td><td>${r.empty_w}</td><td>${r.lg_leg}</td>
           <td>${r.wing_s}</td><td>${r.ar}</td><td>${r.ld}</td>
-          <td>${i===highlight?'<strong style=\'color:var(--accent2)\'>'+r.range_nm+'</strong>':r.range_nm}</td>
+          <td>${i===highlight?'<strong style=\'color:var(--accent2)\'>'+ r.range_nm+'</strong>':r.range_nm}</td>
           <td>${r.endur_hr}</td>
         </tr>`).join('')}
       </tbody>
