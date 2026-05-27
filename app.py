@@ -266,6 +266,7 @@ def optimize():
 
         alt_min = float(data.get("alt_min_ft", 2000.0))
         alt_max = float(data.get("alt_max_ft", 60000.0))
+        strategy = data.get("strategy", "constant_altitude")
 
         # Fixed parameters (cruise_altitude_ft is now searched, not fixed)
         fixed = {}
@@ -285,8 +286,10 @@ def optimize():
         alt_vals = [round((alt_min + (alt_max - alt_min) * i / 7.0) / 500.0) * 500.0
                     for i in range(8)]
 
-        best_range  = -1.0
-        best_params = None
+        from aerodynamics import coffin_corner
+
+        # Feasible candidates from the fast Breguet pass, kept for mission re-rank.
+        candidates: list = []   # (breguet_nm, params)
 
         def _eval(fd, ws, pw, alt):
             params = dict(fixed, fan_diameter_m=fd, wingspan_m=ws,
@@ -299,32 +302,39 @@ def optimize():
             v   = cfg.cruise_speed_ms
             W_n = cfg.mtow_kg * G0_M_S2
             drag_n  = cfg.aero.drag_n(W_n, v, rho, nu)
+            # Thrust margin: need excess thrust for climb/manoeuvre, not just level flight
             P_avail = cfg.engine.max_power_at_altitude_kw(rho) * 1000.0
             T_avail = cfg.propfan.max_thrust_n(v, P_avail, rho, sos)
-            if T_avail < drag_n * 1.01:
-                return None, None   # infeasible
+            if T_avail < drag_n * 1.05:
+                return None, None   # infeasible (no climb margin)
+            # Coffin corner: cruise must lie inside the buffet / Mach envelope
+            cc = coffin_corner(W_n, cfg.wing_area_m2, rho, sos, v)
+            if not cc["in_band"]:
+                return None, None   # outside the flight envelope at this altitude
             r = breguet_range_nm(cfg).get("range_nm", 0.0)
             return r, params
 
-        for fd in fan_vals:
-            for ws in ws_vals:
-                for pw in pw_vals:
-                    for alt in alt_vals:
-                        try:
-                            r, p = _eval(fd, ws, pw, alt)
-                            if r is not None and r > best_range:
-                                best_range, best_params = r, p
-                        except Exception:
-                            pass
+        def _scan(fans, wss, pws, alts):
+            for fd in fans:
+                for ws in wss:
+                    for pw in pws:
+                        for alt in alts:
+                            try:
+                                r, p = _eval(fd, ws, pw, alt)
+                                if r is not None:
+                                    candidates.append((r, p))
+                            except Exception:
+                                pass
 
-        if best_params is None:
+        # ── Coarse pass (Breguet) ─────────────────────────────────────
+        _scan(fan_vals, ws_vals, pw_vals, alt_vals)
+        if not candidates:
             return jsonify({"ok": False, "error": "No feasible configuration found in grid."})
 
-        # ── Refinement: tighten around the coarse best ────────────────
-        fd0  = best_params["fan_diameter_m"]
-        ws0  = best_params["wingspan_m"]
-        pw0  = best_params["engine_power_kw"]
-        alt0 = best_params["cruise_altitude_ft"]
+        # ── Refinement around the coarse Breguet leader ───────────────
+        best_b = max(candidates, key=lambda c: c[0])[1]
+        fd0, ws0   = best_b["fan_diameter_m"], best_b["wingspan_m"]
+        pw0, alt0  = best_b["engine_power_kw"], best_b["cruise_altitude_ft"]
 
         def _clamp(v, lo, hi): return max(lo, min(hi, v))
 
@@ -332,24 +342,31 @@ def optimize():
         ws_vals2  = sorted({_clamp(ws0 * f, 6.0, 16.0)       for f in [0.80,0.88,0.94,1.00,1.06,1.13,1.20,1.28]})
         pw_vals2  = sorted({_clamp(pw0 * f, min_pwr, max_pwr) for f in [0.65,0.80,1.00,1.20,1.40]})
         alt_vals2 = sorted({_clamp(alt0 + d, alt_min, alt_max) for d in [-6000,-3000,0,3000,6000]})
+        _scan(fan_vals2, ws_vals2, pw_vals2, alt_vals2)
 
-        for fd in fan_vals2:
-            for ws in ws_vals2:
-                for pw in pw_vals2:
-                    for alt in alt_vals2:
-                        try:
-                            r, p = _eval(fd, ws, pw, alt)
-                            if r is not None and r > best_range:
-                                best_range, best_params = r, p
-                        except Exception:
-                            pass
+        # ── Hybrid re-rank: score the top Breguet candidates by full mission
+        #    range (climb + descent + 45-min reserve).  Breguet picks the
+        #    region cheaply; the mission sim picks the true winner. ─────────
+        candidates.sort(key=lambda c: c[0], reverse=True)
+        top = candidates[:20]
+        best_mission = -1.0
+        best_params  = top[0][1]
+        best_breguet = top[0][0]
+        for breg, p in top:
+            try:
+                m = mission_simulation(_build_config(p), strategy=strategy)["range_nm"]
+            except Exception:
+                m = 0.0
+            if m > best_mission:
+                best_mission, best_params, best_breguet = m, p, breg
 
         opt = {
             "fan_diameter_m":     round(best_params["fan_diameter_m"],  2),
             "wingspan_m":         round(best_params["wingspan_m"],      2),
             "engine_power_kw":    round(best_params["engine_power_kw"], 0),
             "cruise_altitude_ft": round(best_params["cruise_altitude_ft"]),
-            "breguet_range_nm":   round(best_range, 0),
+            "mission_range_nm":   round(best_mission, 0),
+            "breguet_range_nm":   round(best_breguet, 0),
         }
 
         return jsonify({"ok": True, "params": opt})

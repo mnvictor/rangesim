@@ -44,6 +44,8 @@ Efficiency model
 
 import math
 
+from atmosphere import RHO0_KG_M3
+
 
 # Propfan technology constants
 ETA_PROFILE      = 0.94    # blade profile (viscous) efficiency factor
@@ -52,6 +54,27 @@ ETA_INSTALLATION = 0.97    # pusher installation factor (wake ingestion)
 J_DESIGN         = 2.4     # design-point advance ratio (typical range 2.0–3.0)
 TIP_MACH_LIMIT   = 0.85    # effective tip Mach above which compressibility penalty starts
 TIP_MACH_MAX     = 1.05    # effective tip Mach at which efficiency reaches minimum
+
+# ── High-altitude thrust collapse ─────────────────────────────────────────────
+# An open rotor loses net efficiency in thin air: blade-section Reynolds number
+# scales with density, so below ~28,000 ft (σ ≈ 0.40) the falling Re raises blade
+# profile drag, and the disk loading (thrust relative to dynamic pressure) climbs.
+# Turboprop/propfan installed efficiency holds through the troposphere then
+# declines in the stratosphere — this is why open rotors favour ~25–35 kft.
+SIGMA_RE_REF   = 0.40      # density ratio (~28 kft) above which blade Re is ample
+K_RE_LAPSE     = 1.05      # profile-efficiency loss per unit density-ratio deficit
+ETA_ALT_FLOOR  = 0.55      # floor on the altitude efficiency factor
+
+
+def _altitude_efficiency_factor(density_kg_m3: float) -> float:
+    """
+    Blade-Reynolds / disk-loading efficiency lapse with altitude.
+    1.0 in the troposphere; declines once σ falls below SIGMA_RE_REF.
+    """
+    sigma = density_kg_m3 / RHO0_KG_M3
+    if sigma >= SIGMA_RE_REF:
+        return 1.0
+    return max(ETA_ALT_FLOOR, 1.0 - K_RE_LAPSE * (SIGMA_RE_REF - sigma))
 
 
 def _compressibility_factor(effective_tip_mach: float) -> float:
@@ -165,8 +188,11 @@ class PropfanModel:
         J = self.advance_ratio(airspeed_ms, rpm_design)
         eta_J = _advance_ratio_efficiency_factor(J)
 
+        # High-altitude blade-Reynolds / disk-loading lapse (thrust collapse)
+        eta_alt = _altitude_efficiency_factor(density_kg_m3)
+
         eta = (eta_ideal * ETA_PROFILE * eta_sweep_3d * ETA_SWIRL_CR
-               * ETA_INSTALLATION * eta_comp * eta_J)
+               * ETA_INSTALLATION * eta_comp * eta_J * eta_alt)
         return min(eta, 0.935)
 
     # ------------------------------------------------------------------
