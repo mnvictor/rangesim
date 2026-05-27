@@ -442,6 +442,9 @@ function renderResults(d) {
     ['  Wing sized by', d.weights.wing_sizing_driver === 'altitude' ? '⬆ cruise altitude' : '⬇ sea-level stall'],
     ['  Wing + canard', (d.weights.wing_kg + d.weights.canard_kg).toFixed(1) + ' kg'],
     ['  Fuselage',     d.weights.fuselage_kg + ' kg'],
+    ...(d.weights.pressurization_kg > 0
+        ? [['  Pressurization', d.weights.pressurization_kg + ' kg']]
+        : []),
     ['  Landing gear', d.weights.landing_gear_kg + ' kg'],
     ['  LG leg length',d.weights.landing_gear_leg_m + ' m'],
     ...matRows,

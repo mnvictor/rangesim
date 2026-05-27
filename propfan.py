@@ -210,17 +210,26 @@ class PropfanModel:
     # Weight estimate
     # ------------------------------------------------------------------
 
-    def weight_kg(self) -> float:
+    def weight_kg(self, shaft_power_kw: float = 0.0) -> float:
         """
         Structural mass of the two-stage counter-rotating propfan assembly.
 
         Base: W ≈ 18 · D^2.5  (calibrated to Hamilton Standard SR-7L).
         Sweep penalty: ~0.5 % per degree — swept scimitar blades carry
         complex 3-D bending/torsion loads requiring heavier root structure.
+        Torque term: hub and blade-root mass scales with shaft torque per stage.
+          Q_per_stage = (P/2) / ω,  ω = π · V_ref / (J · D),  V_ref = 100 m/s
+        Adds ~4 kg at 220 kW / 1.6 m; ~69 kg at 3 MW / 2 m.
         """
         base = 18.0 * self.diameter_m ** 2.5
         sweep_factor = 1.0 + 0.005 * self.blade_sweep_deg
-        return base * sweep_factor
+        w = base * sweep_factor
+        if shaft_power_kw > 0.0:
+            V_REF_MS = 100.0
+            q_per_stage_nm = (shaft_power_kw * 500.0 * J_DESIGN * self.diameter_m
+                              / (math.pi * V_REF_MS))
+            w += 0.003 * q_per_stage_nm
+        return w
 
     # ------------------------------------------------------------------
     # Display

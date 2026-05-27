@@ -126,6 +126,7 @@ def run():
                 "wing_kg":              round(w["wing_kg"],        1),
                 "canard_kg":            round(w["canard_kg"],      1),
                 "fuselage_kg":          round(w["fuselage_kg"],    1),
+                "pressurization_kg":    round(w["pressurization_kg"], 1),
                 "landing_gear_kg":      round(w["landing_gear_kg"],1),
                 "landing_gear_leg_m":   round(w["landing_gear_leg_length_m"],2),
                 "engine_kg":            round(w["engine_kg"],      1),
