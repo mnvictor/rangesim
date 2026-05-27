@@ -271,6 +271,24 @@ class AircraftConfig:
                 f"Cruise Mach {self.cruise_mach:.3f} may cause compressibility drag rise."
             )
 
+        # Coffin corner — high-altitude flight envelope
+        from aerodynamics import coffin_corner
+        cc = coffin_corner(W, self.wing_area_m2, rho, sos, v)
+        if not cc["band_ok"]:
+            warnings.append(
+                f"Coffin corner: at {self.cruise_altitude_ft:.0f} ft the low-speed "
+                f"buffet limit ({ms_to_ktas(cc['v_buffet_ms']):.0f} KTAS) exceeds the "
+                f"drag-divergence limit ({ms_to_ktas(cc['v_mach_ms']):.0f} KTAS) — "
+                f"no usable cruise speed exists (above the aerodynamic ceiling)."
+            )
+        elif not cc["in_band"]:
+            lo, hi = ms_to_ktas(cc["v_buffet_ms"]), ms_to_ktas(cc["v_mach_ms"])
+            side = "below buffet/stall margin" if v < cc["v_buffet_ms"] else "past drag-divergence Mach"
+            warnings.append(
+                f"Coffin corner: cruise {self.cruise_speed_ktas:.0f} KTAS is {side} "
+                f"at {self.cruise_altitude_ft:.0f} ft (usable band {lo:.0f}–{hi:.0f} KTAS)."
+            )
+
         # Engine power vs. drag check
         drag_n = self.aero.drag_n(W, v, rho, nu)
         thrust_avail = self.propfan.max_thrust_n(

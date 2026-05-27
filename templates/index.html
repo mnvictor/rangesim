@@ -395,7 +395,10 @@ async function optimizeSim() {
   const altTxt = op.cruise_altitude_ft != null
     ? ` @ ${Math.round(op.cruise_altitude_ft).toLocaleString()} ft`
     : '';
-  toast.textContent = `⚡ Optimizer found ${op.breguet_range_nm.toLocaleString()} nm (Breguet)${altTxt} — running full simulation…`;
+  const rangeTxt = op.mission_range_nm != null
+    ? `${op.mission_range_nm.toLocaleString()} nm mission range`
+    : `${op.breguet_range_nm.toLocaleString()} nm (Breguet)`;
+  toast.textContent = `⚡ Optimizer found ${rangeTxt}${altTxt} — running full simulation…`;
   const panel = document.getElementById('mainPanel');
   panel.insertBefore(toast, panel.firstChild);
 

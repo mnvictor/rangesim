@@ -42,6 +42,35 @@ CL_MAX_CLEAN = 1.00        # canard stalls first; main-wing-referenced CL_max �
 CL_MAX_TAKEOFF = 1.30      # with extended canard leading edge (modest improvement)
 CL_CRUISE_TARGET = 0.35    # informational; actual cruise CL falls out from wing sizing
 
+# ── Coffin corner (high-altitude flight envelope) ─────────────────────────────
+# As altitude rises the 1 g stall speed (in TAS) climbs while the drag-divergence
+# Mach number caps the top speed.  The two boundaries converge at the aerodynamic
+# ceiling — the "coffin corner" — above which no level cruise speed exists.
+M_DRAG_DIVERGENCE = 0.82   # clean-airframe drag-divergence Mach (above the M0.80
+                           # swept-propfan design point, so it never caps that feature)
+BUFFET_MARGIN_G   = 1.3    # required load-factor margin to the low-speed buffet
+
+
+def coffin_corner(weight_n, wing_area_m2, density_kg_m3, speed_of_sound_ms, cruise_speed_ms):
+    """
+    Coffin-corner envelope at the current cruise condition.
+
+    Low-speed boundary  : 1 g stall TAS × sqrt(BUFFET_MARGIN_G)
+    High-speed boundary : M_DRAG_DIVERGENCE × speed of sound
+
+    Returns a dict with both boundary speeds (m/s), whether a usable band
+    exists (band_ok), and whether the cruise speed sits inside it (in_band).
+    """
+    v_stall = math.sqrt(weight_n / (0.5 * density_kg_m3 * wing_area_m2 * CL_MAX_CLEAN))
+    v_buffet = v_stall * math.sqrt(BUFFET_MARGIN_G)
+    v_mach = M_DRAG_DIVERGENCE * speed_of_sound_ms
+    return {
+        "v_buffet_ms": v_buffet,
+        "v_mach_ms": v_mach,
+        "band_ok": v_buffet < v_mach,
+        "in_band": v_buffet <= cruise_speed_ms <= v_mach,
+    }
+
 # ── Parasite drag breakdown (wetted-area approach) ───────────────────────────
 # Form factors for components (Hoerner)
 FF_WING = 1.30      # wing form factor (moderate t/c ~0.14)
