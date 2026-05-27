@@ -250,9 +250,11 @@ def sensitivity():
 def optimize():
     """
     Grid-search optimizer: find fan_diameter_m, wingspan_m, engine_power_kw
-    that maximise Breguet range.  Cruise altitude is fixed (taken from the
-    request).  Also fixed: fuel load, cruise speed, cabin width, stall speed,
-    material, engine type.
+    and cruise_altitude_ft that maximise Breguet range.  Fixed: fuel load,
+    cruise speed, cabin width, stall speed, material, engine type.
+
+    Altitude bounds match the UI slider (2,000–60,000 ft) but can be
+    overridden with alt_min_ft / alt_max_ft in the request.
     """
     try:
         data = request.get_json()
@@ -262,26 +264,33 @@ def optimize():
         max_pwr = ecfg["max_power_kw"]
         min_pwr = max(30.0, max_pwr * 0.04)
 
-        # All fixed parameters (including cruise_altitude_ft)
+        alt_min = float(data.get("alt_min_ft", 2000.0))
+        alt_max = float(data.get("alt_max_ft", 60000.0))
+
+        # Fixed parameters (cruise_altitude_ft is now searched, not fixed)
         fixed = {}
         for key in ("fuel_mass_kg", "cruise_speed_ktas", "cabin_width_m",
-                    "stall_speed_ktas", "cruise_altitude_ft",
+                    "stall_speed_ktas",
                     "material", "engine_type", "blade_sweep_deg", "strategy",
                     "num_occupants"):
             if key in data:
                 fixed[key] = data[key]
 
-        # ── Coarse grid (3-D: fan × wingspan × power) ─────────────────
+        # ── Coarse grid (4-D: fan × wingspan × power × altitude) ──────
         fan_vals = [0.8, 1.0, 1.2, 1.5, 1.8, 2.2, 2.7, 3.0]
         ws_vals  = [6.0, 7.5, 9.0, 10.5, 12.0, 13.5, 15.0, 16.0]
         # 7 power levels log-spaced min→max
         pw_vals  = [round(min_pwr * (max_pwr / min_pwr) ** (i / 6.0), 1) for i in range(7)]
+        # 8 altitudes linearly spaced over the allowed band (rounded to 500 ft)
+        alt_vals = [round((alt_min + (alt_max - alt_min) * i / 7.0) / 500.0) * 500.0
+                    for i in range(8)]
 
         best_range  = -1.0
         best_params = None
 
-        def _eval(fd, ws, pw):
-            params = dict(fixed, fan_diameter_m=fd, wingspan_m=ws, engine_power_kw=pw)
+        def _eval(fd, ws, pw, alt):
+            params = dict(fixed, fan_diameter_m=fd, wingspan_m=ws,
+                          engine_power_kw=pw, cruise_altitude_ft=alt)
             cfg = _build_config(params)
             atm = cfg.atmosphere
             rho = atm["density_kg_m3"]
@@ -300,42 +309,47 @@ def optimize():
         for fd in fan_vals:
             for ws in ws_vals:
                 for pw in pw_vals:
-                    try:
-                        r, p = _eval(fd, ws, pw)
-                        if r is not None and r > best_range:
-                            best_range, best_params = r, p
-                    except Exception:
-                        pass
+                    for alt in alt_vals:
+                        try:
+                            r, p = _eval(fd, ws, pw, alt)
+                            if r is not None and r > best_range:
+                                best_range, best_params = r, p
+                        except Exception:
+                            pass
 
         if best_params is None:
             return jsonify({"ok": False, "error": "No feasible configuration found in grid."})
 
-        # ── Refinement: ±25 % around best ────────────────────────
-        fd0 = best_params["fan_diameter_m"]
-        ws0 = best_params["wingspan_m"]
-        pw0 = best_params["engine_power_kw"]
+        # ── Refinement: tighten around the coarse best ────────────────
+        fd0  = best_params["fan_diameter_m"]
+        ws0  = best_params["wingspan_m"]
+        pw0  = best_params["engine_power_kw"]
+        alt0 = best_params["cruise_altitude_ft"]
 
         def _clamp(v, lo, hi): return max(lo, min(hi, v))
 
         fan_vals2 = sorted({_clamp(fd0 * f, 0.8, 3.0)        for f in [0.80,0.88,0.94,1.00,1.06,1.13,1.20,1.28]})
         ws_vals2  = sorted({_clamp(ws0 * f, 6.0, 16.0)       for f in [0.80,0.88,0.94,1.00,1.06,1.13,1.20,1.28]})
         pw_vals2  = sorted({_clamp(pw0 * f, min_pwr, max_pwr) for f in [0.65,0.80,1.00,1.20,1.40]})
+        alt_vals2 = sorted({_clamp(alt0 + d, alt_min, alt_max) for d in [-6000,-3000,0,3000,6000]})
 
         for fd in fan_vals2:
             for ws in ws_vals2:
                 for pw in pw_vals2:
-                    try:
-                        r, p = _eval(fd, ws, pw)
-                        if r is not None and r > best_range:
-                            best_range, best_params = r, p
-                    except Exception:
-                        pass
+                    for alt in alt_vals2:
+                        try:
+                            r, p = _eval(fd, ws, pw, alt)
+                            if r is not None and r > best_range:
+                                best_range, best_params = r, p
+                        except Exception:
+                            pass
 
         opt = {
-            "fan_diameter_m":   round(best_params["fan_diameter_m"],  2),
-            "wingspan_m":       round(best_params["wingspan_m"],      2),
-            "engine_power_kw":  round(best_params["engine_power_kw"], 0),
-            "breguet_range_nm": round(best_range, 0),
+            "fan_diameter_m":     round(best_params["fan_diameter_m"],  2),
+            "wingspan_m":         round(best_params["wingspan_m"],      2),
+            "engine_power_kw":    round(best_params["engine_power_kw"], 0),
+            "cruise_altitude_ft": round(best_params["cruise_altitude_ft"]),
+            "breguet_range_nm":   round(best_range, 0),
         }
 
         return jsonify({"ok": True, "params": opt})
