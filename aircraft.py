@@ -143,6 +143,7 @@ class AircraftConfig:
             fan_diameter_m=self.fan_diameter_m,
             stall_speed_ktas=self.stall_speed_ktas,
             cruise_speed_ms=v_ms,
+            cruise_pressure_pa=self._atmosphere["pressure_pa"],
             fuel_mass_kg=self.fuel_mass_kg,
             engine_model=self._engine,
             propfan_model=self._propfan,

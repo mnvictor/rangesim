@@ -107,6 +107,15 @@ FUEL_SYSTEM_FRACTION = 0.055    # fraction of fuel mass
 # Scales from ~7 kg at 220 kW to ~49 kg at 3 MW (2 m fan).
 K_THRUST_FRAME_KG_N = 0.0012   # kg per N of max static thrust
 
+# ── Cabin pressurization ──────────────────────────────────────────────────────
+# The cabin is held at an 8,000 ft equivalent altitude (FAA transport maximum).
+# The pressure shell adds structural mass that scales with the cabin↔ambient
+# pressure differential and the pressurised shell surface area — this follows
+# directly from the cylindrical hoop-stress relation t ∝ ΔP·r (skin thickness),
+# so shell mass ∝ ΔP × (shell area).  Zero below 8,000 ft (cabin = ambient).
+CABIN_PRESSURE_PA = 75262.0            # ISA static pressure at 8,000 ft
+K_PRESSURIZATION_KG_PER_KPA_M2 = 0.045 # shell-weight calibration constant
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -205,6 +214,7 @@ class WeightModel:
         # Performance / sizing
         stall_speed_ktas: float,   # target sea-level stall speed (clean)
         cruise_speed_ms: float,    # cruise TAS — used for altitude CL constraint
+        cruise_pressure_pa: float, # ambient static pressure at cruise altitude
         # Masses (user-set)
         fuel_mass_kg: float,
         # Sub-models
@@ -221,6 +231,7 @@ class WeightModel:
         self.fan_diameter_m = fan_diameter_m
         self.stall_speed_ktas = stall_speed_ktas
         self.cruise_speed_ms = cruise_speed_ms
+        self.cruise_pressure_pa = cruise_pressure_pa
         self.fuel_mass_kg = fuel_mass_kg
         self.engine = engine_model
         self.propfan = propfan_model
@@ -257,6 +268,16 @@ class WeightModel:
         w_engine = self.engine.total_powerplant_weight_kg()
         w_propfan = self.propfan.weight_kg(shaft_power_kw=self.engine.max_power_kw)
         w_fuse = _fuselage_weight_kg(l_fuse, self.cabin_width_m) * sf
+
+        # Cabin pressurization shell (hoop-stress model): grows with the
+        # cabin↔ambient ΔP and the pressurised shell surface area.  Zero when
+        # cruising at or below the 8,000 ft cabin altitude (no ΔP to contain).
+        delta_p_kpa = max(0.0, (CABIN_PRESSURE_PA - self.cruise_pressure_pa) / 1000.0)
+        shell_area_m2 = math.pi * d_fuse * l_fuse
+        w_pressurization = (
+            K_PRESSURIZATION_KG_PER_KPA_M2 * delta_p_kpa * shell_area_m2 * sf
+        )
+
         w_fuel_sys = self.fuel_mass_kg * FUEL_SYSTEM_FRACTION
         furnishings_kg = FURNISHINGS_PER_SEAT_KG * self.num_occupants
         w_fixed = (
@@ -298,7 +319,7 @@ class WeightModel:
             ) * sf
 
             w_empty = (
-                w_wing + w_canard + w_fuse + w_lg +
+                w_wing + w_canard + w_fuse + w_lg + w_pressurization +
                 w_engine + w_thrust_frame + w_propfan + w_fuel_sys + w_fixed
             )
             mtow_new = w_empty + payload_kg + self.fuel_mass_kg
@@ -312,7 +333,7 @@ class WeightModel:
         leg_length = _landing_gear_leg_length_m(self.fan_diameter_m, fuselage_bottom_h)
 
         # ── Ti / Al mass breakdown ───────────────────────────
-        w_primary_structure = w_wing + w_canard + w_fuse + w_lg
+        w_primary_structure = w_wing + w_canard + w_fuse + w_lg + w_pressurization
         ti_frac, al_frac = TI_AL_SPLIT.get(self.structural_factor, (0.0, 0.0))
         ti_mass_kg = w_primary_structure * ti_frac
         al_mass_kg = w_primary_structure * al_frac
@@ -325,6 +346,7 @@ class WeightModel:
             "wing_kg": w_wing,
             "canard_kg": w_canard,
             "fuselage_kg": w_fuse,
+            "pressurization_kg": w_pressurization,
             "landing_gear_kg": w_lg,
             "engine_kg": self.engine.dry_weight_kg(),
             "engine_install_kg": self.engine.installation_weight_kg() + w_thrust_frame,
