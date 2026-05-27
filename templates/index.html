@@ -342,19 +342,21 @@ async function optimizeSim() {
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span>Optimizing…';
 
-  // Send only the fixed parameters
+  // Send only the fixed parameters (altitude is now optimized, within slider bounds)
   const p = collectParams();
+  const altSlider = document.getElementById('cruise_altitude_ft');
   const payload = {
     fuel_mass_kg:       p.fuel_mass_kg,
     cruise_speed_ktas:  p.cruise_speed_ktas,
     cabin_width_m:      p.cabin_width_m,
     num_occupants:      p.num_occupants,
     stall_speed_ktas:   p.stall_speed_ktas,
-    cruise_altitude_ft: p.cruise_altitude_ft,
     material:           p.material,
     engine_type:        p.engine_type,
     blade_sweep_deg:    p.blade_sweep_deg,
     strategy:           p.strategy,
+    alt_min_ft:         parseFloat(altSlider.min),
+    alt_max_ft:         parseFloat(altSlider.max),
   };
 
   const res = await fetch('/optimize', {
@@ -385,11 +387,15 @@ async function optimizeSim() {
   setSlider('fan_diameter_m',  op.fan_diameter_m);
   setSlider('wingspan_m',      op.wingspan_m);
   setSlider('engine_power_kw', Math.min(op.engine_power_kw, maxPwr));
+  if (op.cruise_altitude_ft != null) setSlider('cruise_altitude_ft', op.cruise_altitude_ft);
 
   // Show a toast with estimated range before full run
   const toast = document.createElement('div');
   toast.className = 'opt-toast';
-  toast.textContent = `⚡ Optimizer found ${op.breguet_range_nm.toLocaleString()} nm (Breguet) — running full simulation…`;
+  const altTxt = op.cruise_altitude_ft != null
+    ? ` @ ${Math.round(op.cruise_altitude_ft).toLocaleString()} ft`
+    : '';
+  toast.textContent = `⚡ Optimizer found ${op.breguet_range_nm.toLocaleString()} nm (Breguet)${altTxt} — running full simulation…`;
   const panel = document.getElementById('mainPanel');
   panel.insertBefore(toast, panel.firstChild);
 
