@@ -437,7 +437,7 @@ def mission_simulation(
 
         # Descent rate: excess drag over idle thrust drives the sink
         rod_ms = v_ms * max(0.0, drag_n - thrust_i) / W_n
-        rod_ms = max(rod_ms, 1.0)    # ~200 fpm minimum (gear drag / approach config)
+        rod_ms = max(rod_ms, max(4.0, v_ms * 0.05))  # ~800 fpm min (spoiler/pitch authority)
 
         dt_step   = min(dt_phase_s, alt_m / rod_ms)
         fuel_step = min(cfg.engine.fuel_flow_kg_s(p_idle) * dt_step, fuel_remaining)
