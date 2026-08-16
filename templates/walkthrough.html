@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Building Walkthrough - Ray Traced</title>
+<style>
+  html, body { margin: 0; padding: 0; overflow: hidden; height: 100%; background: #000; touch-action: none; }
+  #view { display: block; width: 100vw; height: 100vh; }
+  #hud {
+    position: fixed; top: 0; left: 0; right: 0;
+    padding: 10px 14px; box-sizing: border-box;
+    font: 12px/1.4 -apple-system, system-ui, sans-serif;
+    color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+    pointer-events: none; display: flex; justify-content: space-between;
+  }
+  #hud a { color: #cde; pointer-events: auto; }
+  #joy-base {
+    position: fixed; width: 120px; height: 120px; border-radius: 50%;
+    background: rgba(255,255,255,0.12); border: 2px solid rgba(255,255,255,0.35);
+    display: none; pointer-events: none; z-index: 5;
+  }
+  #joy-knob {
+    position: absolute; left: 30px; top: 30px; width: 60px; height: 60px;
+    border-radius: 50%; background: rgba(255,255,255,0.55);
+  }
+  #hint {
+    position: fixed; bottom: 10px; left: 0; right: 0; text-align: center;
+    font: 12px -apple-system, system-ui, sans-serif; color: #fff;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8); pointer-events: none;
+  }
+</style>
+</head>
+<body>
+  <canvas id="view"></canvas>
+  <div id="hud">
+    <span><a href="/">&larr; Back to range simulator</a></span>
+    <span id="status">samples: 0</span>
+  </div>
+  <div id="hint">Left side: move &middot; Right side: look &middot; (Desktop: WASD + drag mouse)</div>
+  <div id="joy-base"><div id="joy-knob"></div></div>
+  <script src="{{ url_for('static', filename='walkthrough/bundle.js') }}"></script>
+</body>
+</html>

@@ -73,6 +73,11 @@ def index():
                            engine_type_labels=ENGINE_TYPE_LABELS)
 
 
+@app.route("/walkthrough")
+def walkthrough():
+    return render_template("walkthrough.html")
+
+
 @app.route("/run", methods=["POST"])
 def run():
     try:

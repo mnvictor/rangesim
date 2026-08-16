@@ -1,0 +1,27 @@
+{
+  "name": "rangesim",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build:walkthrough": "esbuild src/walkthrough/main.js --bundle --minify --format=iife --target=es2019 --outfile=static/walkthrough/bundle.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mnvictor/rangesim.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mnvictor/rangesim/issues"
+  },
+  "homepage": "https://github.com/mnvictor/rangesim#readme",
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "three": "^0.181.0",
+    "three-gpu-pathtracer": "^0.0.24",
+    "three-mesh-bvh": "^0.9.14"
+  }
+}
